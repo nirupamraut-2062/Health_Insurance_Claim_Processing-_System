@@ -179,7 +179,16 @@ def main_menu():
             pause()
 
         elif choice == '9':
-            print("Web dashboard not implemented in CLI mode.")
+            import subprocess
+            import webbrowser
+            import time
+            print(f"{Fore.GREEN}Starting Web Dashboard Server in a new window...{Style.RESET_ALL}")
+            web_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'web_dashboard', 'app.py')
+            # Opens a new CMD window and runs the FastAPI app
+            subprocess.Popen(f'start cmd /k python "{web_path}"', shell=True)
+            print("Opening browser at http://localhost:8000 ...")
+            time.sleep(2)  # Give the server a moment to start
+            webbrowser.open('http://localhost:8000')
             pause()
 
         elif choice == '0':
