@@ -1,0 +1,92 @@
+[
+  {
+    "hospital_id": "H001",
+    "name": "Apollo Hospitals",
+    "city": "Chennai",
+    "state": "State",
+    "tier": "Tier-1",
+    "beds": 350,
+    "empanelment": {
+      "INS001": true,
+      "INS002": true,
+      "INS003": false,
+      "INS004": true,
+      "INS005": true
+    }
+  },
+  {
+    "hospital_id": "H002",
+    "name": "Fortis Hospital",
+    "city": "Delhi",
+    "state": "State",
+    "tier": "Tier-1",
+    "beds": 400,
+    "empanelment": {
+      "INS001": true,
+      "INS002": true,
+      "INS003": true,
+      "INS004": true,
+      "INS005": true
+    }
+  },
+  {
+    "hospital_id": "H003",
+    "name": "AIIMS",
+    "city": "Delhi",
+    "state": "State",
+    "tier": "Tier-1",
+    "beds": 450,
+    "empanelment": {
+      "INS001": true,
+      "INS002": true,
+      "INS003": false,
+      "INS004": true,
+      "INS005": true
+    }
+  },
+  {
+    "hospital_id": "H004",
+    "name": "Max Hospital",
+    "city": "Gurgaon",
+    "state": "State",
+    "tier": "Tier-1",
+    "beds": 500,
+    "empanelment": {
+      "INS001": true,
+      "INS002": true,
+      "INS003": true,
+      "INS004": true,
+      "INS005": true
+    }
+  },
+  {
+    "hospital_id": "H005",
+    "name": "Manipal Hospital",
+    "city": "Bangalore",
+    "state": "State",
+    "tier": "Tier-2",
+    "beds": 550,
+    "empanelment": {
+      "INS001": true,
+      "INS002": true,
+      "INS003": false,
+      "INS004": true,
+      "INS005": true
+    }
+  },
+  {
+    "hospital_id": "H006",
+    "name": "Medanta",
+    "city": "Gurgaon",
+    "state": "State",
+    "tier": "Tier-1",
+    "beds": 600,
+    "empanelment": {
+      "INS001": true,
+      "INS002": true,
+      "INS003": true,
+      "INS004": true,
+      "INS005": true
+    }
+  }
+]

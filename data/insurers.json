@@ -1,0 +1,47 @@
+[
+  {
+    "insurer_id": "INS001",
+    "name": "Star Health Insurance",
+    "license_no": "IRDAI-HI-2001",
+    "contact": "+91-1800-123-4561",
+    "support_email": "support@starhealthinsurance.in",
+    "rating": 4.1,
+    "headquarters": "Chennai"
+  },
+  {
+    "insurer_id": "INS002",
+    "name": "ICICI Lombard",
+    "license_no": "IRDAI-HI-2002",
+    "contact": "+91-1800-123-4562",
+    "support_email": "support@icicilombard.in",
+    "rating": 4.2,
+    "headquarters": "Mumbai"
+  },
+  {
+    "insurer_id": "INS003",
+    "name": "Max Bupa",
+    "license_no": "IRDAI-HI-2003",
+    "contact": "+91-1800-123-4563",
+    "support_email": "support@maxbupa.in",
+    "rating": 4.3,
+    "headquarters": "Delhi"
+  },
+  {
+    "insurer_id": "INS004",
+    "name": "HDFC Ergo",
+    "license_no": "IRDAI-HI-2004",
+    "contact": "+91-1800-123-4564",
+    "support_email": "support@hdfcergo.in",
+    "rating": 4.4,
+    "headquarters": "Mumbai"
+  },
+  {
+    "insurer_id": "INS005",
+    "name": "New India Assurance",
+    "license_no": "IRDAI-HI-2005",
+    "contact": "+91-1800-123-4565",
+    "support_email": "support@newindiaassurance.in",
+    "rating": 4,
+    "headquarters": "Mumbai"
+  }
+]

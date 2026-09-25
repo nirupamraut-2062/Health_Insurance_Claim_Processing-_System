@@ -1,0 +1,272 @@
+[
+  {
+    "policy_id": "POL001",
+    "patient_id": "P001",
+    "insurer_id": "INS002",
+    "policy_name": "Health Suraksha",
+    "coverage_amount": 600000,
+    "remaining_coverage": 450000,
+    "premium": 11000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL002",
+    "patient_id": "P002",
+    "insurer_id": "INS003",
+    "policy_name": "Optima Restore",
+    "coverage_amount": 700000,
+    "remaining_coverage": 500000,
+    "premium": 12000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL003",
+    "patient_id": "P003",
+    "insurer_id": "INS004",
+    "policy_name": "My:Health Medisure",
+    "coverage_amount": 800000,
+    "remaining_coverage": 550000,
+    "premium": 13000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL004",
+    "patient_id": "P004",
+    "insurer_id": "INS005",
+    "policy_name": "Arogya Sanjeevani",
+    "coverage_amount": 900000,
+    "remaining_coverage": 600000,
+    "premium": 14000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL005",
+    "patient_id": "P005",
+    "insurer_id": "INS001",
+    "policy_name": "Family Health Optima",
+    "coverage_amount": 1000000,
+    "remaining_coverage": 650000,
+    "premium": 15000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL006",
+    "patient_id": "P006",
+    "insurer_id": "INS002",
+    "policy_name": "Health Suraksha",
+    "coverage_amount": 1100000,
+    "remaining_coverage": 700000,
+    "premium": 16000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL007",
+    "patient_id": "P007",
+    "insurer_id": "INS003",
+    "policy_name": "Optima Restore",
+    "coverage_amount": 1200000,
+    "remaining_coverage": 750000,
+    "premium": 17000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL008",
+    "patient_id": "P008",
+    "insurer_id": "INS004",
+    "policy_name": "My:Health Medisure",
+    "coverage_amount": 1300000,
+    "remaining_coverage": 800000,
+    "premium": 18000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL009",
+    "patient_id": "P009",
+    "insurer_id": "INS005",
+    "policy_name": "Arogya Sanjeevani",
+    "coverage_amount": 1400000,
+    "remaining_coverage": 850000,
+    "premium": 19000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL010",
+    "patient_id": "P010",
+    "insurer_id": "INS001",
+    "policy_name": "Family Health Optima",
+    "coverage_amount": 1500000,
+    "remaining_coverage": 900000,
+    "premium": 20000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL011",
+    "patient_id": "P011",
+    "insurer_id": "INS002",
+    "policy_name": "Health Suraksha",
+    "coverage_amount": 1600000,
+    "remaining_coverage": 950000,
+    "premium": 21000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL012",
+    "patient_id": "P012",
+    "insurer_id": "INS003",
+    "policy_name": "Optima Restore",
+    "coverage_amount": 1700000,
+    "remaining_coverage": 1000000,
+    "premium": 22000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Active"
+  },
+  {
+    "policy_id": "POL013",
+    "patient_id": "P013",
+    "insurer_id": "INS004",
+    "policy_name": "My:Health Medisure",
+    "coverage_amount": 1800000,
+    "remaining_coverage": 1050000,
+    "premium": 23000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Expired"
+  },
+  {
+    "policy_id": "POL014",
+    "patient_id": "P014",
+    "insurer_id": "INS005",
+    "policy_name": "Arogya Sanjeevani",
+    "coverage_amount": 1900000,
+    "remaining_coverage": 1100000,
+    "premium": 24000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Expired"
+  },
+  {
+    "policy_id": "POL015",
+    "patient_id": "P015",
+    "insurer_id": "INS001",
+    "policy_name": "Family Health Optima",
+    "coverage_amount": 2000000,
+    "remaining_coverage": 1150000,
+    "premium": 25000,
+    "validity": {
+      "start_date": "2025-01-01",
+      "end_date": "2026-12-31"
+    },
+    "dependents": [
+      "Dependent 1",
+      "Dependent 2"
+    ],
+    "status": "Suspended"
+  }
+]

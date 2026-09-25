@@ -1,0 +1,82 @@
+[
+  {
+    "doctor_id": "D001",
+    "name": "Dr. Doctor 1",
+    "specialization": "Cardiology",
+    "hospital_id": "H002",
+    "registration_no": "MCI-2015-10001",
+    "experience_years": 6
+  },
+  {
+    "doctor_id": "D002",
+    "name": "Dr. Doctor 2",
+    "specialization": "Orthopedics",
+    "hospital_id": "H003",
+    "registration_no": "MCI-2015-10002",
+    "experience_years": 7
+  },
+  {
+    "doctor_id": "D003",
+    "name": "Dr. Doctor 3",
+    "specialization": "General Surgery",
+    "hospital_id": "H004",
+    "registration_no": "MCI-2015-10003",
+    "experience_years": 8
+  },
+  {
+    "doctor_id": "D004",
+    "name": "Dr. Doctor 4",
+    "specialization": "Oncology",
+    "hospital_id": "H005",
+    "registration_no": "MCI-2015-10004",
+    "experience_years": 9
+  },
+  {
+    "doctor_id": "D005",
+    "name": "Dr. Doctor 5",
+    "specialization": "Neurology",
+    "hospital_id": "H006",
+    "registration_no": "MCI-2015-10005",
+    "experience_years": 10
+  },
+  {
+    "doctor_id": "D006",
+    "name": "Dr. Doctor 6",
+    "specialization": "Gynecology",
+    "hospital_id": "H001",
+    "registration_no": "MCI-2015-10006",
+    "experience_years": 11
+  },
+  {
+    "doctor_id": "D007",
+    "name": "Dr. Doctor 7",
+    "specialization": "Pulmonology",
+    "hospital_id": "H002",
+    "registration_no": "MCI-2015-10007",
+    "experience_years": 12
+  },
+  {
+    "doctor_id": "D008",
+    "name": "Dr. Doctor 8",
+    "specialization": "Nephrology",
+    "hospital_id": "H003",
+    "registration_no": "MCI-2015-10008",
+    "experience_years": 13
+  },
+  {
+    "doctor_id": "D009",
+    "name": "Dr. Doctor 9",
+    "specialization": "Gastroenterology",
+    "hospital_id": "H004",
+    "registration_no": "MCI-2015-10009",
+    "experience_years": 14
+  },
+  {
+    "doctor_id": "D010",
+    "name": "Dr. Doctor 10",
+    "specialization": "Emergency Medicine",
+    "hospital_id": "H005",
+    "registration_no": "MCI-2015-10010",
+    "experience_years": 15
+  }
+]

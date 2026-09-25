@@ -1,0 +1,257 @@
+[
+  {
+    "patient_id": "P001",
+    "name": "Rajesh Kumar",
+    "date_of_birth": "1961-2-2",
+    "gender": "Male",
+    "contact": {
+      "phone": "+91-9876500001",
+      "email": "rajesh@email.com"
+    },
+    "address": {
+      "street": "1 Main Road",
+      "city": "Mumbai",
+      "state": "State",
+      "pincode": "400001"
+    },
+    "blood_group": "B+"
+  },
+  {
+    "patient_id": "P002",
+    "name": "Priya Sharma",
+    "date_of_birth": "1962-3-3",
+    "gender": "Female",
+    "contact": {
+      "phone": "+91-9876500002",
+      "email": "priya@email.com"
+    },
+    "address": {
+      "street": "2 Main Road",
+      "city": "Delhi",
+      "state": "State",
+      "pincode": "400002"
+    },
+    "blood_group": "O+"
+  },
+  {
+    "patient_id": "P003",
+    "name": "Amit Patel",
+    "date_of_birth": "1963-4-4",
+    "gender": "Male",
+    "contact": {
+      "phone": "+91-9876500003",
+      "email": "amit@email.com"
+    },
+    "address": {
+      "street": "3 Main Road",
+      "city": "Bangalore",
+      "state": "State",
+      "pincode": "400003"
+    },
+    "blood_group": "AB+"
+  },
+  {
+    "patient_id": "P004",
+    "name": "Sneha Gupta",
+    "date_of_birth": "1964-5-5",
+    "gender": "Female",
+    "contact": {
+      "phone": "+91-9876500004",
+      "email": "sneha@email.com"
+    },
+    "address": {
+      "street": "4 Main Road",
+      "city": "Chennai",
+      "state": "State",
+      "pincode": "400004"
+    },
+    "blood_group": "A-"
+  },
+  {
+    "patient_id": "P005",
+    "name": "Vikram Singh",
+    "date_of_birth": "1965-6-6",
+    "gender": "Male",
+    "contact": {
+      "phone": "+91-9876500005",
+      "email": "vikram@email.com"
+    },
+    "address": {
+      "street": "5 Main Road",
+      "city": "Hyderabad",
+      "state": "State",
+      "pincode": "400005"
+    },
+    "blood_group": "B-"
+  },
+  {
+    "patient_id": "P006",
+    "name": "Anjali Desai",
+    "date_of_birth": "1966-7-7",
+    "gender": "Female",
+    "contact": {
+      "phone": "+91-9876500006",
+      "email": "anjali@email.com"
+    },
+    "address": {
+      "street": "6 Main Road",
+      "city": "Pune",
+      "state": "State",
+      "pincode": "400006"
+    },
+    "blood_group": "O-"
+  },
+  {
+    "patient_id": "P007",
+    "name": "Rahul Verma",
+    "date_of_birth": "1967-8-8",
+    "gender": "Male",
+    "contact": {
+      "phone": "+91-9876500007",
+      "email": "rahul@email.com"
+    },
+    "address": {
+      "street": "7 Main Road",
+      "city": "Kolkata",
+      "state": "State",
+      "pincode": "400007"
+    },
+    "blood_group": "AB-"
+  },
+  {
+    "patient_id": "P008",
+    "name": "Kavita Reddy",
+    "date_of_birth": "1968-9-9",
+    "gender": "Female",
+    "contact": {
+      "phone": "+91-9876500008",
+      "email": "kavita@email.com"
+    },
+    "address": {
+      "street": "8 Main Road",
+      "city": "Jaipur",
+      "state": "State",
+      "pincode": "400008"
+    },
+    "blood_group": "A+"
+  },
+  {
+    "patient_id": "P009",
+    "name": "Sanjay Joshi",
+    "date_of_birth": "1969-10-10",
+    "gender": "Male",
+    "contact": {
+      "phone": "+91-9876500009",
+      "email": "sanjay@email.com"
+    },
+    "address": {
+      "street": "9 Main Road",
+      "city": "Lucknow",
+      "state": "State",
+      "pincode": "400009"
+    },
+    "blood_group": "B+"
+  },
+  {
+    "patient_id": "P010",
+    "name": "Neha Malhotra",
+    "date_of_birth": "1970-11-11",
+    "gender": "Female",
+    "contact": {
+      "phone": "+91-9876500010",
+      "email": "neha@email.com"
+    },
+    "address": {
+      "street": "10 Main Road",
+      "city": "Ahmedabad",
+      "state": "State",
+      "pincode": "400010"
+    },
+    "blood_group": "O+"
+  },
+  {
+    "patient_id": "P011",
+    "name": "Arun Nambiar",
+    "date_of_birth": "1971-12-12",
+    "gender": "Male",
+    "contact": {
+      "phone": "+91-9876500011",
+      "email": "arun@email.com"
+    },
+    "address": {
+      "street": "11 Main Road",
+      "city": "Chandigarh",
+      "state": "State",
+      "pincode": "400011"
+    },
+    "blood_group": "AB+"
+  },
+  {
+    "patient_id": "P012",
+    "name": "Pooja Banerjee",
+    "date_of_birth": "1972-1-13",
+    "gender": "Female",
+    "contact": {
+      "phone": "+91-9876500012",
+      "email": "pooja@email.com"
+    },
+    "address": {
+      "street": "12 Main Road",
+      "city": "Indore",
+      "state": "State",
+      "pincode": "400012"
+    },
+    "blood_group": "A-"
+  },
+  {
+    "patient_id": "P013",
+    "name": "Deepak Chawla",
+    "date_of_birth": "1973-2-14",
+    "gender": "Male",
+    "contact": {
+      "phone": "+91-9876500013",
+      "email": "deepak@email.com"
+    },
+    "address": {
+      "street": "13 Main Road",
+      "city": "Bhopal",
+      "state": "State",
+      "pincode": "400013"
+    },
+    "blood_group": "B-"
+  },
+  {
+    "patient_id": "P014",
+    "name": "Ritu Agarwal",
+    "date_of_birth": "1974-3-15",
+    "gender": "Female",
+    "contact": {
+      "phone": "+91-9876500014",
+      "email": "ritu@email.com"
+    },
+    "address": {
+      "street": "14 Main Road",
+      "city": "Surat",
+      "state": "State",
+      "pincode": "400014"
+    },
+    "blood_group": "O-"
+  },
+  {
+    "patient_id": "P015",
+    "name": "Manoj Tiwari",
+    "date_of_birth": "1975-4-16",
+    "gender": "Male",
+    "contact": {
+      "phone": "+91-9876500015",
+      "email": "manoj@email.com"
+    },
+    "address": {
+      "street": "15 Main Road",
+      "city": "Patna",
+      "state": "State",
+      "pincode": "400015"
+    },
+    "blood_group": "AB-"
+  }
+]

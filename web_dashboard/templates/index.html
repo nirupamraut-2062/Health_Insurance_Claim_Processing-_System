@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Health Insurance System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #eab308;
+            --info: #3b82f6;
+            --purple: #a855f7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-links li a {
+            color: #cbd5e1;
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: block;
+            transition: all 0.3s;
+        }
+
+        .nav-links li a:hover, .nav-links li a.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.875rem;
+            color: var(--text-main);
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        
+        .btn-outline:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Summary Cards */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-title {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            position: relative;
+            height: 350px;
+        }
+
+        /* Table */
+        .table-container {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge.submitted { background: #f1f5f9; color: #475569; }
+        .badge.under-review { background: #fef9c3; color: #ca8a04; }
+        .badge.approved { background: #dcfce7; color: #16a34a; }
+        .badge.rejected { background: #fee2e2; color: #dc2626; }
+        .badge.settled { background: #f3e8ff; color: #9333ea; }
+        
+        .amount {
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            🏥 HealthGuard Systems
+        </div>
+        <ul class="nav-links">
+            <li><a href="/" class="active">Dashboard</a></li>
+            <li><a href="#">Claims</a></li>
+            <li><a href="#">Patients</a></li>
+            <li><a href="#">Analytics</a></li>
+            <li><a href="#">Settings</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>Dashboard Overview</h1>
+            <div class="actions">
+                <a href="#" class="btn btn-outline">Run CRUD Demo</a>
+                <a href="#" class="btn btn-outline">View Analytics</a>
+                <a href="#" class="btn">Submit Claim</a>
+            </div>
+        </div>
+
+        <div class="cards-grid">
+            <div class="card">
+                <div class="card-title">Total Claims</div>
+                <div class="card-value">{{ total_claims }}</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Total Patients</div>
+                <div class="card-value">{{ total_patients }}</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Total Policies</div>
+                <div class="card-value">{{ total_policies }}</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Total Hospitals</div>
+                <div class="card-value">{{ total_hospitals }}</div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h3 style="margin-bottom: 1rem; color: #0f172a;">Claim Status Distribution</h3>
+                <canvas id="statusChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3 style="margin-bottom: 1rem; color: #0f172a;">Claim Types</h3>
+                <canvas id="typeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="table-header">
+                <h3>Recent Claims</h3>
+                <a href="#" style="color: var(--primary); text-decoration: none; font-size: 0.875rem;">View All</a>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Claim ID</th>
+                        <th>Patient ID</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for claim in recent_claims %}
+                    <tr>
+                        <td>{{ claim.claim_id }}</td>
+                        <td>{{ claim.patient_id }}</td>
+                        <td>{{ claim.claim_date }}</td>
+                        <td class="amount">${{ "{:,.2f}".format(claim.billed_amount) }}</td>
+                        <td>
+                            {% set status_class = claim.status.lower().replace(' ', '-') %}
+                            <span class="badge {{ status_class }}">{{ claim.status }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Data from server
+        const statusCounts = {{ status_counts | tojson }};
+        const typeCounts = {{ type_counts | tojson }};
+        
+        // Status Chart (Doughnut)
+        const ctxStatus = document.getElementById('statusChart').getContext('2d');
+        new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(statusCounts),
+                datasets: [{
+                    data: Object.values(statusCounts),
+                    backgroundColor: [
+                        '#94a3b8', // Submitted (Gray)
+                        '#fbbf24', // Under Review (Yellow)
+                        '#22c55e', // Approved (Green)
+                        '#ef4444', // Rejected (Red)
+                        '#a855f7'  // Settled (Purple)
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+
+        // Type Chart (Bar)
+        const ctxType = document.getElementById('typeChart').getContext('2d');
+        new Chart(ctxType, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(typeCounts),
+                datasets: [{
+                    label: 'Number of Claims',
+                    data: Object.values(typeCounts),
+                    backgroundColor: '#3b82f6', // Info Blue
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: true,
+                            color: '#f1f5f9'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

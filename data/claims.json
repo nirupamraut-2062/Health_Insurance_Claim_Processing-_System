@@ -1,0 +1,3290 @@
+[
+  {
+    "claim_id": "CLM001",
+    "policy_id": "POL002",
+    "patient_id": "P002",
+    "hospital_id": "H002",
+    "doctor_id": "D002",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-02-15",
+    "admission_date": "2026-02-10",
+    "discharge_date": "2026-02-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30001",
+      "description": "Medical procedure 1",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 77399.73581154908
+        },
+        {
+          "item": "Medications",
+          "amount": 116099.60371732361
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 193499.3395288727
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "S82.0",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 386999,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM001_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM002",
+    "policy_id": "POL003",
+    "patient_id": "P003",
+    "hospital_id": "H003",
+    "doctor_id": "D003",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-03-15",
+    "admission_date": "2026-03-10",
+    "discharge_date": "2026-03-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30002",
+      "description": "Medical procedure 2",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 34121.481706603015
+        },
+        {
+          "item": "Medications",
+          "amount": 51182.22255990453
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 85303.70426650754
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "O80",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 170607,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM002_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM003",
+    "policy_id": "POL004",
+    "patient_id": "P004",
+    "hospital_id": "H004",
+    "doctor_id": "D004",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-04-15",
+    "admission_date": "2026-04-10",
+    "discharge_date": "2026-04-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30003",
+      "description": "Medical procedure 3",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 61145.151676472175
+        },
+        {
+          "item": "Medications",
+          "amount": 91717.72751470825
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 152862.87919118043
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "E11.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 305726,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM003_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM004",
+    "policy_id": "POL005",
+    "patient_id": "P005",
+    "hospital_id": "H005",
+    "doctor_id": "D005",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-05-15",
+    "admission_date": "2026-05-10",
+    "discharge_date": "2026-05-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30004",
+      "description": "Medical procedure 4",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 95755.78568846769
+        },
+        {
+          "item": "Medications",
+          "amount": 143633.6785327015
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 239389.4642211692
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "J18.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 478779,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM004_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM005",
+    "policy_id": "POL006",
+    "patient_id": "P006",
+    "hospital_id": "H006",
+    "doctor_id": "D006",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-06-15",
+    "admission_date": "2026-06-10",
+    "discharge_date": "2026-06-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30005",
+      "description": "Medical procedure 5",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 8222.504737618303
+        },
+        {
+          "item": "Medications",
+          "amount": 12333.757106427453
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 20556.261844045755
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "K80.20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 41113,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM005_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM006",
+    "policy_id": "POL007",
+    "patient_id": "P007",
+    "hospital_id": "H001",
+    "doctor_id": "D007",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-07-15",
+    "admission_date": "2026-07-10",
+    "discharge_date": "2026-07-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30006",
+      "description": "Medical procedure 6",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 64411.26840393827
+        },
+        {
+          "item": "Medications",
+          "amount": 96616.90260590741
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 161028.17100984568
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "M17.1",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 322056,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM006_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM007",
+    "policy_id": "POL008",
+    "patient_id": "P008",
+    "hospital_id": "H002",
+    "doctor_id": "D008",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-08-15",
+    "admission_date": "2026-08-10",
+    "discharge_date": "2026-08-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30007",
+      "description": "Medical procedure 7",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 13874.597040974375
+        },
+        {
+          "item": "Medications",
+          "amount": 20811.895561461562
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 34686.49260243594
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "C50.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 69373,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM007_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM008",
+    "policy_id": "POL009",
+    "patient_id": "P009",
+    "hospital_id": "H003",
+    "doctor_id": "D009",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-09-15",
+    "admission_date": "2026-09-10",
+    "discharge_date": "2026-09-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30008",
+      "description": "Medical procedure 8",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 34908.628155544546
+        },
+        {
+          "item": "Medications",
+          "amount": 52362.94223331682
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 87271.57038886136
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "G20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 174543,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM008_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM009",
+    "policy_id": "POL010",
+    "patient_id": "P010",
+    "hospital_id": "H004",
+    "doctor_id": "D010",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-10-15",
+    "admission_date": "2026-10-10",
+    "discharge_date": "2026-10-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30009",
+      "description": "Medical procedure 9",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 26789.85193209015
+        },
+        {
+          "item": "Medications",
+          "amount": 40184.777898135224
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 66974.62983022537
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "N18.3",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 133949,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM009_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM010",
+    "policy_id": "POL011",
+    "patient_id": "P011",
+    "hospital_id": "H005",
+    "doctor_id": "D001",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-11-15",
+    "admission_date": "2026-11-10",
+    "discharge_date": "2026-11-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30010",
+      "description": "Medical procedure 10",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 72742.40216601086
+        },
+        {
+          "item": "Medications",
+          "amount": 109113.60324901626
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 181856.00541502712
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "I25.10",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 363712,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM010_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM011",
+    "policy_id": "POL012",
+    "patient_id": "P012",
+    "hospital_id": "H006",
+    "doctor_id": "D002",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-12-15",
+    "admission_date": "2026-12-10",
+    "discharge_date": "2026-12-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30011",
+      "description": "Medical procedure 11",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 57086.355815301686
+        },
+        {
+          "item": "Medications",
+          "amount": 85629.53372295252
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 142715.8895382542
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "S82.0",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 285432,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM011_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM012",
+    "policy_id": "POL013",
+    "patient_id": "P013",
+    "hospital_id": "H001",
+    "doctor_id": "D003",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-01-15",
+    "admission_date": "2026-01-10",
+    "discharge_date": "2026-01-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30012",
+      "description": "Medical procedure 12",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 60098.19331219837
+        },
+        {
+          "item": "Medications",
+          "amount": 90147.28996829754
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 150245.48328049592
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "O80",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 300491,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM012_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM013",
+    "policy_id": "POL014",
+    "patient_id": "P014",
+    "hospital_id": "H002",
+    "doctor_id": "D004",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-02-15",
+    "admission_date": "2026-02-10",
+    "discharge_date": "2026-02-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30013",
+      "description": "Medical procedure 13",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 92666.50456035242
+        },
+        {
+          "item": "Medications",
+          "amount": 138999.7568405286
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 231666.26140088102
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "E11.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 463333,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM013_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM014",
+    "policy_id": "POL015",
+    "patient_id": "P015",
+    "hospital_id": "H003",
+    "doctor_id": "D005",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-03-15",
+    "admission_date": "2026-03-10",
+    "discharge_date": "2026-03-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30014",
+      "description": "Medical procedure 14",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 42760.079581432954
+        },
+        {
+          "item": "Medications",
+          "amount": 64140.11937214943
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 106900.19895358238
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "J18.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 213800,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM014_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM015",
+    "policy_id": "POL001",
+    "patient_id": "P001",
+    "hospital_id": "H004",
+    "doctor_id": "D006",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-04-15",
+    "admission_date": "2026-04-10",
+    "discharge_date": "2026-04-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30015",
+      "description": "Medical procedure 15",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 27059.36269909502
+        },
+        {
+          "item": "Medications",
+          "amount": 40589.04404864253
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 67648.40674773755
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "K80.20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 135297,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Submitted",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM015_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM016",
+    "policy_id": "POL002",
+    "patient_id": "P002",
+    "hospital_id": "H005",
+    "doctor_id": "D007",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-05-15",
+    "admission_date": "2026-05-10",
+    "discharge_date": "2026-05-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30016",
+      "description": "Medical procedure 16",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 21753.018533498816
+        },
+        {
+          "item": "Medications",
+          "amount": 32629.52780024822
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 54382.546333747036
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "M17.1",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 108765,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM016_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM017",
+    "policy_id": "POL003",
+    "patient_id": "P003",
+    "hospital_id": "H006",
+    "doctor_id": "D008",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-06-15",
+    "admission_date": "2026-06-10",
+    "discharge_date": "2026-06-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30017",
+      "description": "Medical procedure 17",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 21296.70677145961
+        },
+        {
+          "item": "Medications",
+          "amount": 31945.06015718941
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 53241.76692864902
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "C50.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 106484,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM017_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM018",
+    "policy_id": "POL004",
+    "patient_id": "P004",
+    "hospital_id": "H001",
+    "doctor_id": "D009",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-07-15",
+    "admission_date": "2026-07-10",
+    "discharge_date": "2026-07-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30018",
+      "description": "Medical procedure 18",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 87727.68536069572
+        },
+        {
+          "item": "Medications",
+          "amount": 131591.52804104355
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 219319.21340173928
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "G20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 438638,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM018_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM019",
+    "policy_id": "POL005",
+    "patient_id": "P005",
+    "hospital_id": "H002",
+    "doctor_id": "D010",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-08-15",
+    "admission_date": "2026-08-10",
+    "discharge_date": "2026-08-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30019",
+      "description": "Medical procedure 19",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 16492.459479072942
+        },
+        {
+          "item": "Medications",
+          "amount": 24738.68921860941
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 41231.14869768235
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "N18.3",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 82462,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM019_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM020",
+    "policy_id": "POL006",
+    "patient_id": "P006",
+    "hospital_id": "H003",
+    "doctor_id": "D001",
+    "claim_type": "Inpatient",
+    "claim_date": "2026-09-15",
+    "admission_date": "2026-09-10",
+    "discharge_date": "2026-09-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30020",
+      "description": "Medical procedure 20",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 71492.43268176552
+        },
+        {
+          "item": "Medications",
+          "amount": 107238.64902264829
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 178731.0817044138
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "I25.10",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 357462,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM020_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM021",
+    "policy_id": "POL007",
+    "patient_id": "P007",
+    "hospital_id": "H004",
+    "doctor_id": "D002",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-10-15",
+    "admission_date": "2026-10-10",
+    "discharge_date": "2026-10-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30021",
+      "description": "Medical procedure 21",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 89347.6908513076
+        },
+        {
+          "item": "Medications",
+          "amount": 134021.5362769614
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 223369.227128269
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "S82.0",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 446738,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM021_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM022",
+    "policy_id": "POL008",
+    "patient_id": "P008",
+    "hospital_id": "H005",
+    "doctor_id": "D003",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-11-15",
+    "admission_date": "2026-11-10",
+    "discharge_date": "2026-11-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30022",
+      "description": "Medical procedure 22",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 2435.3525083237964
+        },
+        {
+          "item": "Medications",
+          "amount": 3653.0287624856946
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 6088.381270809491
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "O80",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 12177,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM022_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM023",
+    "policy_id": "POL009",
+    "patient_id": "P009",
+    "hospital_id": "H006",
+    "doctor_id": "D004",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-12-15",
+    "admission_date": "2026-12-10",
+    "discharge_date": "2026-12-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30023",
+      "description": "Medical procedure 23",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 62766.13468935957
+        },
+        {
+          "item": "Medications",
+          "amount": 94149.20203403935
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 156915.3367233989
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "E11.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 313831,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM023_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM024",
+    "policy_id": "POL010",
+    "patient_id": "P010",
+    "hospital_id": "H001",
+    "doctor_id": "D005",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-01-15",
+    "admission_date": "2026-01-10",
+    "discharge_date": "2026-01-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30024",
+      "description": "Medical procedure 24",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 71727.66072622262
+        },
+        {
+          "item": "Medications",
+          "amount": 107591.49108933393
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 179319.15181555654
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "J18.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 358638,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM024_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM025",
+    "policy_id": "POL011",
+    "patient_id": "P011",
+    "hospital_id": "H002",
+    "doctor_id": "D006",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-02-15",
+    "admission_date": "2026-02-10",
+    "discharge_date": "2026-02-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30025",
+      "description": "Medical procedure 25",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 16106.414260406564
+        },
+        {
+          "item": "Medications",
+          "amount": 24159.621390609842
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 40266.035651016406
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "K80.20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 80532,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM025_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM026",
+    "policy_id": "POL012",
+    "patient_id": "P012",
+    "hospital_id": "H003",
+    "doctor_id": "D007",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-03-15",
+    "admission_date": "2026-03-10",
+    "discharge_date": "2026-03-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30026",
+      "description": "Medical procedure 26",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 81539.63511160009
+        },
+        {
+          "item": "Medications",
+          "amount": 122309.45266740011
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 203849.0877790002
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "M17.1",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 407698,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM026_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM027",
+    "policy_id": "POL013",
+    "patient_id": "P013",
+    "hospital_id": "H004",
+    "doctor_id": "D008",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-04-15",
+    "admission_date": "2026-04-10",
+    "discharge_date": "2026-04-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30027",
+      "description": "Medical procedure 27",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 99745.63790563842
+        },
+        {
+          "item": "Medications",
+          "amount": 149618.45685845762
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 249364.09476409602
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "C50.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 498728,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Under Review",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM027_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM028",
+    "policy_id": "POL014",
+    "patient_id": "P014",
+    "hospital_id": "H005",
+    "doctor_id": "D009",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-05-15",
+    "admission_date": "2026-05-10",
+    "discharge_date": "2026-05-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30028",
+      "description": "Medical procedure 28",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 13249.679785030989
+        },
+        {
+          "item": "Medications",
+          "amount": 19874.51967754648
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 33124.19946257747
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "G20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 66248,
+    "approved_amount": 59624,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM028_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM029",
+    "policy_id": "POL015",
+    "patient_id": "P015",
+    "hospital_id": "H006",
+    "doctor_id": "D010",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-06-15",
+    "admission_date": "2026-06-10",
+    "discharge_date": "2026-06-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30029",
+      "description": "Medical procedure 29",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 9329.216589929456
+        },
+        {
+          "item": "Medications",
+          "amount": 13993.824884894184
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 23323.04147482364
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "N18.3",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 46646,
+    "approved_amount": 41981,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM029_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM030",
+    "policy_id": "POL001",
+    "patient_id": "P001",
+    "hospital_id": "H001",
+    "doctor_id": "D001",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-07-15",
+    "admission_date": "2026-07-10",
+    "discharge_date": "2026-07-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30030",
+      "description": "Medical procedure 30",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 86000.96323190675
+        },
+        {
+          "item": "Medications",
+          "amount": 129001.4448478601
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 215002.40807976684
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "I25.10",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 430005,
+    "approved_amount": 387004,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM030_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM031",
+    "policy_id": "POL002",
+    "patient_id": "P002",
+    "hospital_id": "H002",
+    "doctor_id": "D002",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-08-15",
+    "admission_date": "2026-08-10",
+    "discharge_date": "2026-08-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30031",
+      "description": "Medical procedure 31",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 10996.172711879317
+        },
+        {
+          "item": "Medications",
+          "amount": 16494.259067818974
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 27490.43177969829
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "S82.0",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 54981,
+    "approved_amount": 49483,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM031_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM032",
+    "policy_id": "POL003",
+    "patient_id": "P003",
+    "hospital_id": "H003",
+    "doctor_id": "D003",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-09-15",
+    "admission_date": "2026-09-10",
+    "discharge_date": "2026-09-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30032",
+      "description": "Medical procedure 32",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 57084.10061916794
+        },
+        {
+          "item": "Medications",
+          "amount": 85626.1509287519
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 142710.25154791985
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "O80",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 285421,
+    "approved_amount": 256878,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM032_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM033",
+    "policy_id": "POL004",
+    "patient_id": "P004",
+    "hospital_id": "H004",
+    "doctor_id": "D004",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-10-15",
+    "admission_date": "2026-10-10",
+    "discharge_date": "2026-10-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30033",
+      "description": "Medical procedure 33",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 48472.404912911035
+        },
+        {
+          "item": "Medications",
+          "amount": 72708.60736936654
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 121181.01228227757
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "E11.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 242362,
+    "approved_amount": 218126,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM033_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM034",
+    "policy_id": "POL005",
+    "patient_id": "P005",
+    "hospital_id": "H005",
+    "doctor_id": "D005",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-11-15",
+    "admission_date": "2026-11-10",
+    "discharge_date": "2026-11-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30034",
+      "description": "Medical procedure 34",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 55341.388813798854
+        },
+        {
+          "item": "Medications",
+          "amount": 83012.08322069827
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 138353.47203449713
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "J18.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 276707,
+    "approved_amount": 249036,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM034_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM035",
+    "policy_id": "POL006",
+    "patient_id": "P006",
+    "hospital_id": "H006",
+    "doctor_id": "D006",
+    "claim_type": "Outpatient",
+    "claim_date": "2026-12-15",
+    "admission_date": "2026-12-10",
+    "discharge_date": "2026-12-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30035",
+      "description": "Medical procedure 35",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 51461.290829836915
+        },
+        {
+          "item": "Medications",
+          "amount": 77191.93624475537
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 128653.22707459229
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "K80.20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 257306,
+    "approved_amount": 231576,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM035_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM036",
+    "policy_id": "POL007",
+    "patient_id": "P007",
+    "hospital_id": "H001",
+    "doctor_id": "D007",
+    "claim_type": "Emergency",
+    "claim_date": "2026-01-15",
+    "admission_date": "2026-01-10",
+    "discharge_date": "2026-01-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30036",
+      "description": "Medical procedure 36",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 2155.152874795747
+        },
+        {
+          "item": "Medications",
+          "amount": 3232.7293121936204
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 5387.882186989367
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "M17.1",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 10776,
+    "approved_amount": 9698,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM036_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM037",
+    "policy_id": "POL008",
+    "patient_id": "P008",
+    "hospital_id": "H002",
+    "doctor_id": "D008",
+    "claim_type": "Emergency",
+    "claim_date": "2026-02-15",
+    "admission_date": "2026-02-10",
+    "discharge_date": "2026-02-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30037",
+      "description": "Medical procedure 37",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 11818.077102378396
+        },
+        {
+          "item": "Medications",
+          "amount": 17727.115653567595
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 29545.19275594599
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "C50.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 59090,
+    "approved_amount": 53181,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM037_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM038",
+    "policy_id": "POL009",
+    "patient_id": "P009",
+    "hospital_id": "H003",
+    "doctor_id": "D009",
+    "claim_type": "Emergency",
+    "claim_date": "2026-03-15",
+    "admission_date": "2026-03-10",
+    "discharge_date": "2026-03-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30038",
+      "description": "Medical procedure 38",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 45788.92365855378
+        },
+        {
+          "item": "Medications",
+          "amount": 68683.38548783066
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 114472.30914638445
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "G20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 228945,
+    "approved_amount": 206050,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM038_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM039",
+    "policy_id": "POL010",
+    "patient_id": "P010",
+    "hospital_id": "H004",
+    "doctor_id": "D010",
+    "claim_type": "Emergency",
+    "claim_date": "2026-04-15",
+    "admission_date": "2026-04-10",
+    "discharge_date": "2026-04-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30039",
+      "description": "Medical procedure 39",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 36169.752438623895
+        },
+        {
+          "item": "Medications",
+          "amount": 54254.62865793584
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 90424.38109655974
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "N18.3",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 180849,
+    "approved_amount": 162764,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM039_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM040",
+    "policy_id": "POL011",
+    "patient_id": "P011",
+    "hospital_id": "H005",
+    "doctor_id": "D001",
+    "claim_type": "Emergency",
+    "claim_date": "2026-05-15",
+    "admission_date": "2026-05-10",
+    "discharge_date": "2026-05-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30040",
+      "description": "Medical procedure 40",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 22020.988485216672
+        },
+        {
+          "item": "Medications",
+          "amount": 33031.482727825
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 55052.471213041674
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "I25.10",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 110105,
+    "approved_amount": 99094,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM040_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM041",
+    "policy_id": "POL012",
+    "patient_id": "P012",
+    "hospital_id": "H006",
+    "doctor_id": "D002",
+    "claim_type": "Emergency",
+    "claim_date": "2026-06-15",
+    "admission_date": "2026-06-10",
+    "discharge_date": "2026-06-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30041",
+      "description": "Medical procedure 41",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 35654.81991504921
+        },
+        {
+          "item": "Medications",
+          "amount": 53482.2298725738
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 89137.04978762301
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "S82.0",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 178274,
+    "approved_amount": 160447,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM041_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM042",
+    "policy_id": "POL013",
+    "patient_id": "P013",
+    "hospital_id": "H001",
+    "doctor_id": "D003",
+    "claim_type": "Emergency",
+    "claim_date": "2026-07-15",
+    "admission_date": "2026-07-10",
+    "discharge_date": "2026-07-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30042",
+      "description": "Medical procedure 42",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 6741.871542671251
+        },
+        {
+          "item": "Medications",
+          "amount": 10112.807314006875
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 16854.678856678125
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "O80",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 33709,
+    "approved_amount": 30338,
+    "deductible_amount": 5000,
+    "status": "Approved",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM042_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM043",
+    "policy_id": "POL014",
+    "patient_id": "P014",
+    "hospital_id": "H002",
+    "doctor_id": "D004",
+    "claim_type": "Emergency",
+    "claim_date": "2026-08-15",
+    "admission_date": "2026-08-10",
+    "discharge_date": "2026-08-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30043",
+      "description": "Medical procedure 43",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 47587.762626304284
+        },
+        {
+          "item": "Medications",
+          "amount": 71381.64393945642
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 118969.4065657607
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "E11.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 237939,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Rejected",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      },
+      {
+        "status": "Rejected",
+        "timestamp": "2026-01-18T14:00:00Z",
+        "notes": "Not covered under policy terms",
+        "updated_by": "system"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM043_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM044",
+    "policy_id": "POL015",
+    "patient_id": "P015",
+    "hospital_id": "H003",
+    "doctor_id": "D005",
+    "claim_type": "Emergency",
+    "claim_date": "2026-09-15",
+    "admission_date": "2026-09-10",
+    "discharge_date": "2026-09-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30044",
+      "description": "Medical procedure 44",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 35887.28979168499
+        },
+        {
+          "item": "Medications",
+          "amount": 53830.93468752748
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 89718.22447921247
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "J18.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 179436,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Rejected",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      },
+      {
+        "status": "Rejected",
+        "timestamp": "2026-01-18T14:00:00Z",
+        "notes": "Not covered under policy terms",
+        "updated_by": "system"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM044_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM045",
+    "policy_id": "POL001",
+    "patient_id": "P001",
+    "hospital_id": "H004",
+    "doctor_id": "D006",
+    "claim_type": "Emergency",
+    "claim_date": "2026-10-15",
+    "admission_date": "2026-10-10",
+    "discharge_date": "2026-10-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30045",
+      "description": "Medical procedure 45",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 87829.28494549885
+        },
+        {
+          "item": "Medications",
+          "amount": 131743.92741824826
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 219573.2123637471
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "K80.20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 439146,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Rejected",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      },
+      {
+        "status": "Rejected",
+        "timestamp": "2026-01-18T14:00:00Z",
+        "notes": "Not covered under policy terms",
+        "updated_by": "system"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM045_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM046",
+    "policy_id": "POL002",
+    "patient_id": "P002",
+    "hospital_id": "H005",
+    "doctor_id": "D007",
+    "claim_type": "Maternity",
+    "claim_date": "2026-11-15",
+    "admission_date": "2026-11-10",
+    "discharge_date": "2026-11-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30046",
+      "description": "Medical procedure 46",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 31788.809634815232
+        },
+        {
+          "item": "Medications",
+          "amount": 47683.21445222285
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 79472.02408703808
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "M17.1",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 158944,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Rejected",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      },
+      {
+        "status": "Rejected",
+        "timestamp": "2026-01-18T14:00:00Z",
+        "notes": "Not covered under policy terms",
+        "updated_by": "system"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM046_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM047",
+    "policy_id": "POL003",
+    "patient_id": "P003",
+    "hospital_id": "H006",
+    "doctor_id": "D008",
+    "claim_type": "Maternity",
+    "claim_date": "2026-12-15",
+    "admission_date": "2026-12-10",
+    "discharge_date": "2026-12-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30047",
+      "description": "Medical procedure 47",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 57377.51403977205
+        },
+        {
+          "item": "Medications",
+          "amount": 86066.27105965807
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 143443.78509943013
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "C50.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 286888,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Rejected",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      },
+      {
+        "status": "Rejected",
+        "timestamp": "2026-01-18T14:00:00Z",
+        "notes": "Not covered under policy terms",
+        "updated_by": "system"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM047_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM048",
+    "policy_id": "POL004",
+    "patient_id": "P004",
+    "hospital_id": "H001",
+    "doctor_id": "D009",
+    "claim_type": "Maternity",
+    "claim_date": "2026-01-15",
+    "admission_date": "2026-01-10",
+    "discharge_date": "2026-01-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30048",
+      "description": "Medical procedure 48",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 73018.27583795502
+        },
+        {
+          "item": "Medications",
+          "amount": 109527.41375693252
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 182545.68959488755
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "G20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 365091,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Rejected",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      },
+      {
+        "status": "Rejected",
+        "timestamp": "2026-01-18T14:00:00Z",
+        "notes": "Not covered under policy terms",
+        "updated_by": "system"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM048_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM049",
+    "policy_id": "POL005",
+    "patient_id": "P005",
+    "hospital_id": "H002",
+    "doctor_id": "D010",
+    "claim_type": "Maternity",
+    "claim_date": "2026-02-15",
+    "admission_date": "2026-02-10",
+    "discharge_date": "2026-02-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30049",
+      "description": "Medical procedure 49",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 38631.981719027404
+        },
+        {
+          "item": "Medications",
+          "amount": 57947.9725785411
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 96579.9542975685
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "N18.3",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 193160,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Rejected",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      },
+      {
+        "status": "Rejected",
+        "timestamp": "2026-01-18T14:00:00Z",
+        "notes": "Not covered under policy terms",
+        "updated_by": "system"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM049_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM050",
+    "policy_id": "POL006",
+    "patient_id": "P006",
+    "hospital_id": "H003",
+    "doctor_id": "D001",
+    "claim_type": "Maternity",
+    "claim_date": "2026-03-15",
+    "admission_date": "2026-03-10",
+    "discharge_date": "2026-03-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30050",
+      "description": "Medical procedure 50",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 83393.64750396938
+        },
+        {
+          "item": "Medications",
+          "amount": 125090.47125595403
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 208484.1187599234
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "I25.10",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 416968,
+    "approved_amount": 0,
+    "deductible_amount": 5000,
+    "status": "Rejected",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      },
+      {
+        "status": "Rejected",
+        "timestamp": "2026-01-18T14:00:00Z",
+        "notes": "Not covered under policy terms",
+        "updated_by": "system"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM050_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM051",
+    "policy_id": "POL007",
+    "patient_id": "P007",
+    "hospital_id": "H004",
+    "doctor_id": "D002",
+    "claim_type": "Surgical",
+    "claim_date": "2026-04-15",
+    "admission_date": "2026-04-10",
+    "discharge_date": "2026-04-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30051",
+      "description": "Medical procedure 51",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 60854.93719510811
+        },
+        {
+          "item": "Medications",
+          "amount": 91282.40579266216
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 152137.34298777027
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "S82.0",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 304275,
+    "approved_amount": 273847,
+    "deductible_amount": 5000,
+    "status": "Settled",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM051_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM052",
+    "policy_id": "POL008",
+    "patient_id": "P008",
+    "hospital_id": "H005",
+    "doctor_id": "D003",
+    "claim_type": "Surgical",
+    "claim_date": "2026-05-15",
+    "admission_date": "2026-05-10",
+    "discharge_date": "2026-05-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30052",
+      "description": "Medical procedure 52",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 33236.457592435516
+        },
+        {
+          "item": "Medications",
+          "amount": 49854.68638865327
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 83091.14398108878
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "O80",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 166182,
+    "approved_amount": 149564,
+    "deductible_amount": 5000,
+    "status": "Settled",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM052_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM053",
+    "policy_id": "POL009",
+    "patient_id": "P009",
+    "hospital_id": "H006",
+    "doctor_id": "D004",
+    "claim_type": "Surgical",
+    "claim_date": "2026-06-15",
+    "admission_date": "2026-06-10",
+    "discharge_date": "2026-06-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30053",
+      "description": "Medical procedure 53",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 76474.4761162832
+        },
+        {
+          "item": "Medications",
+          "amount": 114711.71417442481
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 191186.190290708
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "E11.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 382372,
+    "approved_amount": 344135,
+    "deductible_amount": 5000,
+    "status": "Settled",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM053_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM054",
+    "policy_id": "POL010",
+    "patient_id": "P010",
+    "hospital_id": "H001",
+    "doctor_id": "D005",
+    "claim_type": "Surgical",
+    "claim_date": "2026-07-15",
+    "admission_date": "2026-07-10",
+    "discharge_date": "2026-07-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30054",
+      "description": "Medical procedure 54",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 78436.82243192392
+        },
+        {
+          "item": "Medications",
+          "amount": 117655.23364788589
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 196092.05607980982
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "J18.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 392184,
+    "approved_amount": 352966,
+    "deductible_amount": 5000,
+    "status": "Settled",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM054_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM055",
+    "policy_id": "POL011",
+    "patient_id": "P011",
+    "hospital_id": "H002",
+    "doctor_id": "D006",
+    "claim_type": "Surgical",
+    "claim_date": "2026-08-15",
+    "admission_date": "2026-08-10",
+    "discharge_date": "2026-08-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30055",
+      "description": "Medical procedure 55",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 86892.79572840195
+        },
+        {
+          "item": "Medications",
+          "amount": 130339.19359260291
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 217231.98932100486
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "K80.20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 434464,
+    "approved_amount": 391018,
+    "deductible_amount": 5000,
+    "status": "Settled",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM055_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM056",
+    "policy_id": "POL012",
+    "patient_id": "P012",
+    "hospital_id": "H003",
+    "doctor_id": "D007",
+    "claim_type": "Surgical",
+    "claim_date": "2026-09-15",
+    "admission_date": "2026-09-10",
+    "discharge_date": "2026-09-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30056",
+      "description": "Medical procedure 56",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 44268.49700082145
+        },
+        {
+          "item": "Medications",
+          "amount": 66402.74550123217
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 110671.24250205362
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "M17.1",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 221342,
+    "approved_amount": 199208,
+    "deductible_amount": 5000,
+    "status": "Settled",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM056_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM057",
+    "policy_id": "POL013",
+    "patient_id": "P013",
+    "hospital_id": "H004",
+    "doctor_id": "D008",
+    "claim_type": "Surgical",
+    "claim_date": "2026-10-15",
+    "admission_date": "2026-10-10",
+    "discharge_date": "2026-10-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30057",
+      "description": "Medical procedure 57",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 43384.21049406328
+        },
+        {
+          "item": "Medications",
+          "amount": 65076.31574109491
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 108460.52623515819
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "C50.9",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 216921,
+    "approved_amount": 195229,
+    "deductible_amount": 5000,
+    "status": "Settled",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM057_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM058",
+    "policy_id": "POL014",
+    "patient_id": "P014",
+    "hospital_id": "H005",
+    "doctor_id": "D009",
+    "claim_type": "Surgical",
+    "claim_date": "2026-11-15",
+    "admission_date": "2026-11-10",
+    "discharge_date": "2026-11-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30058",
+      "description": "Medical procedure 58",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 21542.004993351966
+        },
+        {
+          "item": "Medications",
+          "amount": 32313.007490027947
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 53855.01248337991
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "G20",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 107710,
+    "approved_amount": 96939,
+    "deductible_amount": 5000,
+    "status": "Settled",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM058_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM059",
+    "policy_id": "POL015",
+    "patient_id": "P015",
+    "hospital_id": "H006",
+    "doctor_id": "D010",
+    "claim_type": "Surgical",
+    "claim_date": "2026-12-15",
+    "admission_date": "2026-12-10",
+    "discharge_date": "2026-12-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30059",
+      "description": "Medical procedure 59",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 79229.59384574436
+        },
+        {
+          "item": "Medications",
+          "amount": 118844.39076861652
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 198073.98461436087
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "N18.3",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 396148,
+    "approved_amount": 356533,
+    "deductible_amount": 5000,
+    "status": "Settled",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM059_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM060",
+    "policy_id": "POL001",
+    "patient_id": "P001",
+    "hospital_id": "H001",
+    "doctor_id": "D001",
+    "claim_type": "Surgical",
+    "claim_date": "2026-01-15",
+    "admission_date": "2026-01-10",
+    "discharge_date": "2026-01-14",
+    "treatment_details": {
+      "procedure_code": "CPT-30060",
+      "description": "Medical procedure 60",
+      "cost_breakdown": [
+        {
+          "item": "Room Charges",
+          "amount": 15145.551321748711
+        },
+        {
+          "item": "Medications",
+          "amount": 22718.326982623064
+        },
+        {
+          "item": "Diagnostics",
+          "amount": 37863.87830437178
+        }
+      ]
+    },
+    "diagnosis": [
+      {
+        "icd_code": "I25.10",
+        "description": "Medical condition"
+      }
+    ],
+    "billed_amount": 75728,
+    "approved_amount": 68155,
+    "deductible_amount": 5000,
+    "status": "Settled",
+    "status_history": [
+      {
+        "status": "Submitted",
+        "timestamp": "2026-01-15T09:00:00Z",
+        "notes": "Claim submitted",
+        "updated_by": "patient"
+      }
+    ],
+    "supporting_documents": [
+      {
+        "type": "Discharge Summary",
+        "url": "/docs/CLM060_discharge.pdf",
+        "upload_date": "2026-01-15"
+      }
+    ]
+  }
+]
