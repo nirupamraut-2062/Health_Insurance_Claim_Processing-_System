@@ -37,7 +37,7 @@ async def dashboard(request: Request):
     # Recent claims
     recent_claims = list(db.claims.find({}, {'_id': 0}).sort('claim_date', -1).limit(10))
     
-    return templates.TemplateResponse('index.html', {
+    context = {
         'request': request,
         'total_claims': total_claims,
         'total_patients': total_patients,
@@ -46,7 +46,8 @@ async def dashboard(request: Request):
         'status_counts': status_counts,
         'type_counts': type_counts,
         'recent_claims': recent_claims
-    })
+    }
+    return templates.TemplateResponse(request=request, name='index.html', context=context)
 
 if __name__ == '__main__':
     uvicorn.run(app, host='0.0.0.0', port=8000)
