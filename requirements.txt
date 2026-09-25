@@ -1,0 +1,7 @@
+pymongo
+mongomock
+tabulate
+colorama
+fastapi
+uvicorn
+jinja2
