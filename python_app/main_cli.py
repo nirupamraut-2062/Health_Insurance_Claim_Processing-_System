@@ -1,5 +1,10 @@
 import os
 import sys
+import io
+
+# Fix Windows console encoding for Unicode characters
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
