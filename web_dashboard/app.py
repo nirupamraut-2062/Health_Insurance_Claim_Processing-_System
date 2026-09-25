@@ -7,11 +7,14 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import uvicorn
 from db_config import get_database
+from seed import seed_database
 
 app = FastAPI(title='Health Insurance Claim Processing System')
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), 'templates'))
 
 db = get_database()
+if db.claims.count_documents({}) == 0:
+    seed_database(db)
 
 @app.get('/', response_class=HTMLResponse)
 async def dashboard(request: Request):

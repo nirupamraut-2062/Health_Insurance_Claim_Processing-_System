@@ -28,7 +28,7 @@ def pause():
 
 def print_header():
     print(f"{Fore.BLUE}{Style.BRIGHT}" + "="*60)
-    print(f"{Fore.GREEN}{Style.BRIGHT}    🏥 Health Insurance Claim Processing System")
+    print(f"{Fore.GREEN}{Style.BRIGHT}    [HEALTH] Health Insurance Claim Processing System")
     print(f"{Fore.BLUE}{Style.BRIGHT}" + "="*60)
     if USE_MOCK:
         print(f"{Fore.YELLOW}    [Running in MOCK mode (mongomock)]{Style.RESET_ALL}")
@@ -71,15 +71,15 @@ def main_menu():
         clear_screen()
         print_header()
         
-        print(f"  {Fore.YELLOW}1.{Style.RESET_ALL} 📊 Database Summary")
-        print(f"  {Fore.YELLOW}2.{Style.RESET_ALL} ➕ Create Operations")
-        print(f"  {Fore.YELLOW}3.{Style.RESET_ALL} 🔍 Read Operations")
-        print(f"  {Fore.YELLOW}4.{Style.RESET_ALL} ✏️ Update Operations")
-        print(f"  {Fore.YELLOW}5.{Style.RESET_ALL} 🗑️ Delete Operations")
-        print(f"  {Fore.YELLOW}6.{Style.RESET_ALL} 📈 Analytics Dashboard")
-        print(f"  {Fore.YELLOW}7.{Style.RESET_ALL} ⚡ Indexing Benchmark")
-        print(f"  {Fore.YELLOW}8.{Style.RESET_ALL} 🔒 Transaction Demo")
-        print(f"  {Fore.YELLOW}9.{Style.RESET_ALL} 🌐 Launch Web Dashboard (N/A in CLI)")
+        print(f"  {Fore.YELLOW}1.{Style.RESET_ALL} [REPORT] Database Summary")
+        print(f"  {Fore.YELLOW}2.{Style.RESET_ALL} [+]  Create Operations")
+        print(f"  {Fore.YELLOW}3.{Style.RESET_ALL} [SEARCH]  Read Operations")
+        print(f"  {Fore.YELLOW}4.{Style.RESET_ALL} [EDIT]  Update Operations")
+        print(f"  {Fore.YELLOW}5.{Style.RESET_ALL} [-]  Delete Operations")
+        print(f"  {Fore.YELLOW}6.{Style.RESET_ALL} [ANALYTICS] Analytics Dashboard")
+        print(f"  {Fore.YELLOW}7.{Style.RESET_ALL} [INDEX] Indexing Benchmark")
+        print(f"  {Fore.YELLOW}8.{Style.RESET_ALL} [ACID] Transaction Demo")
+        print(f"  {Fore.YELLOW}9.{Style.RESET_ALL} [WEB]  Launch Web Dashboard (N/A in CLI)")
         print(f"  {Fore.YELLOW}0.{Style.RESET_ALL} Exit")
         
         choice = input(f"\n{Fore.CYAN}Select an option: {Style.RESET_ALL}")

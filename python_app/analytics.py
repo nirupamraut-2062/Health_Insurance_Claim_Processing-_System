@@ -76,9 +76,12 @@ def insurer_rejection_rate(db):
 
 def top_diagnoses(db):
     pipeline = [
-        {'$unwind': '$diagnosis_codes'},
+        {'$unwind': '$diagnosis'},
         {'$group': {
-            '_id': '$diagnosis_codes',
+            '_id': {
+                'icd_code': '$diagnosis.icd_code',
+                'description': '$diagnosis.description'
+            },
             'claim_count': {'$sum': 1},
             'total_cost': {'$sum': '$billed_amount'},
             'avg_cost': {'$avg': '$billed_amount'}
@@ -89,8 +92,8 @@ def top_diagnoses(db):
     try:
         results = list(db.claims.aggregate(pipeline))
         print("\n--- Top Diagnoses ---")
-        headers = ["ICD Code", "Claim Count", "Total Cost", "Avg Cost"]
-        table = [[r['_id'], r['claim_count'], f"${r.get('total_cost',0):.2f}", f"${r.get('avg_cost',0):.2f}"] for r in results]
+        headers = ["ICD Code", "Description", "Claim Count", "Total Cost", "Avg Cost"]
+        table = [[r['_id']['icd_code'], r['_id']['description'], r['claim_count'], f"Rs.{r.get('total_cost',0):.2f}", f"Rs.{r.get('avg_cost',0):.2f}"] for r in results]
         print(tabulate(table, headers=headers, tablefmt="grid"))
     except Exception as e:
         print("Aggregation failed:", e)
@@ -119,7 +122,7 @@ def monthly_trends(db):
 
 def run_all_analytics(db):
     print("\n" + "="*50)
-    print("  📈 RUNNING ANALYTICS DASHBOARD")
+    print("  [ANALYTICS] RUNNING ANALYTICS DASHBOARD")
     print("="*50)
     claim_status_summary(db)
     hospital_performance(db)

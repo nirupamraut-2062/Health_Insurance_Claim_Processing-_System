@@ -2,7 +2,7 @@ from db_config import USE_MOCK
 
 def run_transaction_demo(db, client=None):
     print("\n" + "="*50)
-    print("  🔒 RUNNING ACID TRANSACTION DEMO")
+    print("  [ACID] RUNNING ACID TRANSACTION DEMO")
     print("="*50)
 
     # Find a claim to settle

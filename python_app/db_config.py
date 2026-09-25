@@ -7,17 +7,25 @@ MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
 # Set to False when using real MongoDB (local or Atlas)
 USE_MOCK = True
 
+_client = None
+
 def get_client():
+    global _client
+    if _client is not None:
+        return _client
+
     if USE_MOCK:
         try:
             import mongomock
-            return mongomock.MongoClient()
+            _client = mongomock.MongoClient()
+            return _client
         except ImportError:
             print('mongomock not installed. Install with: pip install mongomock')
             sys.exit(1)
     else:
         from pymongo import MongoClient
-        return MongoClient(MONGO_URI)
+        _client = MongoClient(MONGO_URI)
+        return _client
 
 def get_database():
     client = get_client()

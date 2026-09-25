@@ -41,10 +41,10 @@ def seed_database(db=None):
         
         count = db[collection_name].count_documents({})
         total += count
-        print(f'  ✅ {collection_name:12s} : {count:3d} records loaded')
+        print(f'  [OK] {collection_name:12s} : {count:3d} records loaded')
     
     print('-'*50)
-    print(f'  📊 TOTAL RECORDS : {total}')
+    print(f'  [TOTAL] RECORDS  : {total}')
     print('='*50)
     return total
 

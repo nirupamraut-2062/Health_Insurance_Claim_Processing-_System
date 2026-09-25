@@ -3,7 +3,7 @@ from db_config import USE_MOCK
 
 def run_indexing_benchmark(db):
     print("\n" + "="*50)
-    print("  ⚡ RUNNING INDEXING BENCHMARK")
+    print("  [INDEX] RUNNING INDEXING BENCHMARK")
     print("="*50)
     
     if USE_MOCK:
@@ -32,8 +32,8 @@ def run_indexing_benchmark(db):
         db.claims.create_index('status')
         # Compound Index
         db.claims.create_index([('status', 1), ('billed_amount', -1)])
-        # Multikey Index
-        db.claims.create_index('diagnosis_codes')
+        # Multikey Index on diagnosis array
+        db.claims.create_index('diagnosis.icd_code')
         print("Indexes created successfully.")
     except Exception as e:
         print(f"Note: Could not create indexes (mongomock limitation?): {e}")
