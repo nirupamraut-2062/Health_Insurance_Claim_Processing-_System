@@ -1,0 +1,287 @@
+{
+  "insurers": {
+    "bsonType": "object",
+    "required": ["insurer_id", "name", "code", "type", "irdai_reg_no", "headquarters"],
+    "properties": {
+      "insurer_id": {"bsonType": "string", "pattern": "^INS[0-9]{2}$"},
+      "name": {"bsonType": "string", "minLength": 3},
+      "code": {"bsonType": "string", "pattern": "^[A-Z]{3}$"},
+      "type": {"enum": ["General Insurer (Private)", "General Insurer (Public Sector)", "Standalone Health Insurer"]},
+      "irdai_reg_no": {"bsonType": "string"},
+      "headquarters": {"bsonType": "object", "required": ["city", "state"]},
+      "established_year": {"bsonType": "number", "minimum": 1900, "maximum": 2100},
+      "solvency_ratio": {"bsonType": "number", "minimum": 1.5, "description": "IRDAI mandates a minimum solvency ratio of 1.5"},
+      "customer_rating": {"bsonType": "number", "minimum": 0, "maximum": 5},
+      "tpa_ids": {"bsonType": "array", "items": {"bsonType": "string"}}
+    }
+  },
+  "tpas": {
+    "bsonType": "object",
+    "required": ["tpa_id", "name", "irdai_license_no", "insurer_ids"],
+    "properties": {
+      "tpa_id": {"bsonType": "string", "pattern": "^TPA[0-9]{2}$"},
+      "name": {"bsonType": "string"},
+      "irdai_license_no": {"bsonType": "string"},
+      "insurer_ids": {"bsonType": "array", "items": {"bsonType": "string"}}
+    }
+  },
+  "plans": {
+    "bsonType": "object",
+    "required": ["plan_id", "insurer_id", "name", "category", "policy_types", "sum_insured_options", "features", "waiting_periods"],
+    "properties": {
+      "plan_id": {"bsonType": "string", "pattern": "^PLN-[A-Z]{3}-[A-Z]{3}$"},
+      "insurer_id": {"bsonType": "string"},
+      "name": {"bsonType": "string"},
+      "category": {"enum": ["Basic", "Comprehensive", "Senior", "Premier", "Group"]},
+      "policy_types": {"bsonType": "array", "minItems": 1, "items": {"enum": ["Individual", "Family Floater", "Senior Citizen", "Group"]}},
+      "sum_insured_options": {"bsonType": "array", "minItems": 1, "items": {"bsonType": "number", "minimum": 100000}},
+      "base_premium": {"bsonType": "number", "minimum": 0},
+      "features": {
+        "bsonType": "object",
+        "required": ["room_rent_limit", "copay_percent", "ambulance_limit", "maternity_cover"],
+        "properties": {
+          "room_rent_limit": {"bsonType": "object", "required": ["type"], "properties": {"type": {"enum": ["percent_si", "category", "none"]}}},
+          "copay_percent": {"bsonType": "number", "minimum": 0, "maximum": 50},
+          "ambulance_limit": {"bsonType": "number", "minimum": 0},
+          "maternity_cover": {"bsonType": "bool"}
+        }
+      },
+      "waiting_periods": {
+        "bsonType": "object",
+        "required": ["initial_days", "pre_existing_months", "specific_illness_months", "maternity_months"],
+        "properties": {
+          "initial_days": {"bsonType": "number", "minimum": 0},
+          "pre_existing_months": {"bsonType": "number", "minimum": 0, "maximum": 48, "description": "IRDAI caps PED waiting at 48 months"},
+          "specific_illness_months": {"bsonType": "number", "minimum": 0},
+          "maternity_months": {"bsonType": "number", "minimum": 0}
+        }
+      },
+      "sub_limits": {"bsonType": "array", "items": {"bsonType": "object", "required": ["label", "icd_codes", "limit"]}},
+      "excluded_icd_codes": {"bsonType": "array", "items": {"bsonType": "string"}}
+    }
+  },
+  "icd_codes": {
+    "bsonType": "object",
+    "required": ["code", "description", "specialty", "avg_cost", "avg_los", "is_surgical"],
+    "properties": {
+      "code": {"bsonType": "string", "pattern": "^[A-Z][0-9]{2}(\\.[0-9A-Z]{1,4})?$"},
+      "description": {"bsonType": "string"},
+      "specialty": {"bsonType": "string"},
+      "avg_cost": {"bsonType": "number", "minimum": 0},
+      "avg_los": {"bsonType": "number", "minimum": 0},
+      "is_surgical": {"bsonType": "bool"},
+      "ped_group": {"bsonType": ["string", "null"]}
+    }
+  },
+  "hospitals": {
+    "bsonType": "object",
+    "required": ["hospital_id", "rohini_id", "name", "type", "ownership", "address", "location", "city_tier", "beds", "specialties", "network"],
+    "properties": {
+      "hospital_id": {"bsonType": "string", "pattern": "^HSP[0-9]{4}$"},
+      "rohini_id": {"bsonType": "string", "pattern": "^[0-9]{13}$", "description": "13-digit ROHINI hospital registry id"},
+      "name": {"bsonType": "string"},
+      "type": {"enum": ["Super Speciality", "Multi Speciality", "Single Speciality", "Nursing Home"]},
+      "ownership": {"enum": ["Private", "Trust", "Government"]},
+      "accreditation": {"enum": ["JCI", "NABH", "NABH Entry Level", "None"]},
+      "address": {
+        "bsonType": "object",
+        "required": ["city", "state", "pincode"],
+        "properties": {"pincode": {"bsonType": "string", "pattern": "^[1-9][0-9]{5}$"}}
+      },
+      "location": {
+        "bsonType": "object",
+        "required": ["type", "coordinates"],
+        "properties": {
+          "type": {"enum": ["Point"]},
+          "coordinates": {"bsonType": "array", "minItems": 2, "maxItems": 2, "items": {"bsonType": "number"}}
+        }
+      },
+      "city_tier": {"enum": [1, 2, 3]},
+      "beds": {"bsonType": "number", "minimum": 1},
+      "specialties": {"bsonType": "array", "minItems": 1, "items": {"bsonType": "string"}},
+      "network": {"bsonType": "object", "required": ["insurer_ids"]},
+      "watchlisted": {"bsonType": "bool"}
+    }
+  },
+  "doctors": {
+    "bsonType": "object",
+    "required": ["doctor_id", "name", "specialization", "hospital_id", "registration_no"],
+    "properties": {
+      "doctor_id": {"bsonType": "string", "pattern": "^DOC[0-9]{5}$"},
+      "name": {"bsonType": "string", "pattern": "^Dr\\. "},
+      "specialization": {"bsonType": "string"},
+      "hospital_id": {"bsonType": "string"},
+      "registration_no": {"bsonType": "string"},
+      "experience_years": {"bsonType": "number", "minimum": 0, "maximum": 60}
+    }
+  },
+  "users": {
+    "bsonType": "object",
+    "required": ["user_id", "name", "email", "role", "approval_limit", "active"],
+    "properties": {
+      "user_id": {"bsonType": "string", "pattern": "^USR[0-9]{3}$"},
+      "email": {"bsonType": "string", "pattern": "^[^@\\s]+@[^@\\s]+\\.[a-z]+$"},
+      "role": {"enum": ["Admin", "Claims Manager", "Senior Claims Adjuster", "Medical Officer", "Claims Executive", "Fraud Analyst"]},
+      "approval_limit": {"bsonType": "number", "minimum": 0},
+      "active": {"bsonType": "bool"}
+    }
+  },
+  "agents": {
+    "bsonType": "object",
+    "required": ["agent_id", "name", "type", "license_no", "insurer_ids", "commission_rate", "status"],
+    "properties": {
+      "agent_id": {"bsonType": "string", "pattern": "^AGT[0-9]{4}$"},
+      "type": {"enum": ["Individual Agent", "Broker", "Bancassurance", "Corporate Agent"]},
+      "insurer_ids": {"bsonType": "array", "minItems": 1},
+      "commission_rate": {"bsonType": "number", "minimum": 0, "maximum": 20},
+      "status": {"enum": ["Active", "Inactive"]}
+    }
+  },
+  "members": {
+    "bsonType": "object",
+    "required": ["member_id", "name", "gender", "dob", "contact", "address", "family_id"],
+    "properties": {
+      "member_id": {"bsonType": "string", "pattern": "^MEM[0-9]{6}$"},
+      "name": {"bsonType": "string", "minLength": 2},
+      "gender": {"enum": ["Male", "Female", "Other"]},
+      "dob": {"bsonType": "date"},
+      "contact": {
+        "bsonType": "object",
+        "required": ["phone"],
+        "properties": {
+          "phone": {"bsonType": "string", "pattern": "^\\+91-[6-9][0-9]{9}$"},
+          "email": {"bsonType": ["string", "null"]}
+        }
+      },
+      "address": {"bsonType": "object", "required": ["city", "state", "pincode"]},
+      "blood_group": {"enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]},
+      "height_cm": {"bsonType": "number", "minimum": 30, "maximum": 250},
+      "weight_kg": {"bsonType": "number", "minimum": 1, "maximum": 300},
+      "pre_existing_conditions": {"bsonType": "array", "items": {"enum": ["Diabetes", "Hypertension", "Thyroid", "Asthma", "Heart Disease", "Arthritis", "Kidney Disease"]}},
+      "family_id": {"bsonType": "string"}
+    }
+  },
+  "policies": {
+    "bsonType": "object",
+    "required": ["policy_number", "plan_id", "insurer_id", "policy_type", "proposer_id", "insured_members", "sum_insured",
+                 "total_cover", "utilized_amount", "available_cover", "premium", "first_inception_date", "start_date", "end_date", "status", "channel"],
+    "properties": {
+      "policy_number": {"bsonType": "string", "pattern": "^[A-Z]{3}-HL-[0-9]{4}-[0-9]{6}$"},
+      "policy_type": {"enum": ["Individual", "Family Floater", "Senior Citizen", "Group"]},
+      "tpa_id": {"bsonType": ["string", "null"]},
+      "insured_members": {
+        "bsonType": "array",
+        "minItems": 1,
+        "items": {
+          "bsonType": "object",
+          "required": ["member_id", "name", "relation"],
+          "properties": {"relation": {"enum": ["Self", "Spouse", "Son", "Daughter", "Father", "Mother"]}}
+        }
+      },
+      "sum_insured": {"bsonType": "number", "minimum": 100000},
+      "cumulative_bonus": {"bsonType": "number", "minimum": 0},
+      "total_cover": {"bsonType": "number", "minimum": 0},
+      "utilized_amount": {"bsonType": "number", "minimum": 0},
+      "available_cover": {"bsonType": "number", "minimum": 0},
+      "premium": {"bsonType": "object", "required": ["base", "gst", "total"]},
+      "first_inception_date": {"bsonType": "date"},
+      "start_date": {"bsonType": "date"},
+      "end_date": {"bsonType": "date"},
+      "status": {"enum": ["Active", "Expired", "Lapsed", "Cancelled"]},
+      "cancelled_on": {"bsonType": ["date", "null"]},
+      "channel": {"enum": ["Agent", "Online", "Bancassurance", "Broker", "Employer"]},
+      "agent_id": {"bsonType": ["string", "null"]},
+      "renewal_count": {"bsonType": "number", "minimum": 0}
+    }
+  },
+  "claims": {
+    "bsonType": "object",
+    "required": ["claim_number", "claim_type", "admission_type", "status", "policy_number", "member_id", "hospital_id",
+                 "insurer_id", "plan_id", "primary_icd", "diagnosis", "admission_date", "bill", "claimed_amount",
+                 "approved_amount", "settled_amount", "status_history", "snapshot"],
+    "properties": {
+      "claim_number": {"bsonType": "string", "pattern": "^CLM-[0-9]{4}-[0-9]{6}$"},
+      "claim_type": {"enum": ["Cashless", "Reimbursement"]},
+      "admission_type": {"enum": ["Planned", "Emergency"]},
+      "status": {"enum": ["Intimated", "Documents Pending", "Under Review", "Query Raised", "Escalated",
+                          "Approved", "Partially Approved", "Rejected", "Settled", "Withdrawn"]},
+      "diagnosis": {
+        "bsonType": "array",
+        "minItems": 1,
+        "items": {
+          "bsonType": "object",
+          "required": ["icd_code", "description", "type"],
+          "properties": {"type": {"enum": ["Primary", "Secondary"]}}
+        }
+      },
+      "admission_date": {"bsonType": "date"},
+      "discharge_date": {"bsonType": ["date", "null"]},
+      "length_of_stay": {"bsonType": "number", "minimum": 0, "maximum": 365},
+      "icu_days": {"bsonType": "number", "minimum": 0},
+      "room_category": {"enum": ["General Ward", "Twin Sharing", "Single Private", "Deluxe", "ICU"]},
+      "bill": {
+        "bsonType": "object",
+        "required": ["total"],
+        "properties": {
+          "total": {"bsonType": "number", "minimum": 0},
+          "room_charges": {"bsonType": "number", "minimum": 0},
+          "medicines": {"bsonType": "number", "minimum": 0},
+          "consumables": {"bsonType": "number", "minimum": 0}
+        }
+      },
+      "claimed_amount": {"bsonType": "number", "minimum": 0},
+      "approved_amount": {"bsonType": "number", "minimum": 0},
+      "settled_amount": {"bsonType": "number", "minimum": 0},
+      "status_history": {
+        "bsonType": "array",
+        "minItems": 1,
+        "items": {"bsonType": "object", "required": ["status", "at", "by"], "properties": {"at": {"bsonType": "date"}}}
+      },
+      "pre_auth": {"bsonType": ["object", "null"]},
+      "adjudication": {"bsonType": "object", "required": ["decision", "payable_amount"]},
+      "fraud": {
+        "bsonType": "object",
+        "required": ["score", "risk_level"],
+        "properties": {
+          "score": {"bsonType": "number", "minimum": 0, "maximum": 100},
+          "risk_level": {"enum": ["Low", "Medium", "High"]}
+        }
+      },
+      "tat_days": {"bsonType": ["number", "null"], "minimum": 0}
+    }
+  },
+  "payments": {
+    "bsonType": "object",
+    "required": ["payment_id", "claim_number", "policy_number", "amount", "payee", "mode", "utr", "status"],
+    "properties": {
+      "payment_id": {"bsonType": "string", "pattern": "^PAY-[0-9]{4}-[0-9]{6}$"},
+      "amount": {"bsonType": "number", "minimum": 1},
+      "payee": {"bsonType": "object", "required": ["type", "name"], "properties": {"type": {"enum": ["Hospital", "Member"]}}},
+      "mode": {"enum": ["NEFT", "RTGS", "IMPS", "Cheque"]},
+      "status": {"enum": ["Initiated", "Success", "Failed", "Reversed"]},
+      "paid_at": {"bsonType": ["date", "null"]}
+    }
+  },
+  "grievances": {
+    "bsonType": "object",
+    "required": ["grievance_id", "claim_number", "member_id", "category", "channel", "status", "raised_at"],
+    "properties": {
+      "grievance_id": {"bsonType": "string", "pattern": "^GRV-[0-9]{4}-[0-9]{5}$"},
+      "category": {"enum": ["Claim Rejection", "Short Settlement", "Delay in Settlement", "Cashless Denial", "Service Issue"]},
+      "channel": {"enum": ["Bima Bharosa Portal", "Email", "Call Centre", "Branch Walk-in"]},
+      "status": {"enum": ["Open", "In Progress", "Resolved", "Escalated to Ombudsman"]},
+      "priority": {"enum": ["Low", "Medium", "High"]},
+      "raised_at": {"bsonType": "date"},
+      "resolved_at": {"bsonType": ["date", "null"]}
+    }
+  },
+  "audit_logs": {
+    "bsonType": "object",
+    "required": ["timestamp", "actor_id", "action", "entity_type", "entity_id"],
+    "properties": {
+      "timestamp": {"bsonType": "date"},
+      "action": {"bsonType": "string", "pattern": "^[A-Z_]+$"},
+      "entity_type": {"enum": ["claim", "policy", "member", "payment", "grievance", "system"]}
+    }
+  }
+}

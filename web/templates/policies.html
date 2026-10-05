@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Policies{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Policies</h1><p>{{ pg.total|num }} policies &middot; each embeds its insured members and renewal history</p></div>
+  <div class="btn-row"><a class="btn" href="/policies?renewal=due">Renewals due in 45 days</a></div>
+</div>
+<div class="card">
+  <form class="filters" method="get">
+    <div class="f"><label>Search</label><input name="q" value="{{ f.q or '' }}" placeholder="Policy no or insured name" style="width:240px"></div>
+    <div class="f"><label>Status</label><select name="status"><option value="">All</option>{% for s in statuses %}<option {{ 'selected' if f.status == s }}>{{ s }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Type</label><select name="type"><option value="">All</option>{% for s in types %}<option {{ 'selected' if f.type == s }}>{{ s }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Insurer</label><select name="insurer"><option value="">All</option>{% for i in insurers.values() %}<option value="{{ i.insurer_id }}" {{ 'selected' if f.insurer == i.insurer_id }}>{{ i.name }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Channel</label><select name="channel"><option value="">All</option>{% for c in ['Agent', 'Online', 'Bancassurance', 'Broker', 'Employer'] %}<option {{ 'selected' if f.channel == c }}>{{ c }}</option>{% endfor %}</select></div>
+    <div class="f"><button class="btn primary">Apply</button></div><div class="f"><a class="btn" href="/policies">Reset</a></div>
+  </form>
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>Policy</th><th>Insured</th><th>Plan / insurer</th><th class="num">Sum insured</th><th>Utilisation</th><th class="num">Premium</th><th>Term</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for p in rows %}
+      {% set used = (100 * p.utilized_amount / p.total_cover) if p.total_cover else 0 %}
+      <tr>
+        <td><a class="mono strong" href="/policies/{{ p.policy_number }}">{{ p.policy_number }}</a><div class="sub">{{ p.policy_type }} &middot; {{ p.channel }}</div></td>
+        <td>{{ p.insured_members[0].name }}{% if p.insured_members|length > 1 %} <span class="sub">+{{ p.insured_members|length - 1 }}</span>{% endif %}
+          {% if p.employer %}<div class="sub">{{ p.employer }}</div>{% endif %}</td>
+        <td>{{ plans[p.plan_id].name }}<div class="sub">{{ insurers[p.insurer_id].name }}</div></td>
+        <td class="num">{{ p.total_cover|inr }}</td>
+        <td style="min-width:120px"><div class="progress {{ 'red' if used > 80 else ('amber' if used > 50 else '') }}"><span style="width: {{ [used, 100]|min }}%"></span></div><div class="sub">{{ '%.0f'|format(used) }}% used</div></td>
+        <td class="num">{{ p.premium.total|inr }}</td>
+        <td class="nowrap">{{ p.start_date|date }}<div class="sub">to {{ p.end_date|date }}</div></td>
+        <td>{{ m.pill(p.status, {'Active': 'green', 'Expired': 'gray', 'Cancelled': 'red', 'Lapsed': 'amber'}[p.status]) }}</td>
+      </tr>
+    {% else %}<tr><td colspan="8" class="empty">No policies match.</td></tr>{% endfor %}
+    </tbody></table></div>
+  {{ m.pager(pg) }}
+</div>
+{% endblock %}

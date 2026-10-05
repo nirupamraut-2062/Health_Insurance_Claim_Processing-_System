@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Claims Operations Dashboard</h1>
+    <p>Good to see you, {{ user.name.split()[0] if not user.name.startswith('Dr.') else user.name }} &middot; {{ user.role }} &middot; approval limit {{ user.approval_limit|inr }}</p>
+  </div>
+  <div class="btn-row">
+    <a class="btn" href="/analytics">Full analytics</a>
+    <a class="btn primary" href="/claims/new">&#10010; Intimate claim</a>
+  </div>
+</div>
+
+<div class="grid g4">
+  {{ m.kpi("Total claims", k.total_claims|num, k.last_30_days ~ " intimated in last 30 days", "accent") }}
+  {{ m.kpi("Amount claimed", k.claimed|inr_short, "Approved " ~ (k.approved|inr_short), "purple") }}
+  {{ m.kpi("Claims paid", k.settled|inr_short, k.awaiting_payment ~ " approved claims awaiting payment (" ~ (k.awaiting_payment_amount|inr_short) ~ ")", "green") }}
+  {{ m.kpi("Claim settlement ratio", k.settlement_ratio ~ "%", "Rejection ratio " ~ k.rejection_ratio ~ "%", "teal") }}
+  {{ m.kpi("Open claims", k.open|num, "<a href='/claims?status=open'>View work queue &rsaquo;</a>", "amber") }}
+  {{ m.kpi("Decision TAT", k.tat_cashless ~ " / " ~ k.tat_reimbursement ~ " days", "Cashless / reimbursement &middot; payment in " ~ k.settlement_tat ~ " days", "accent") }}
+  {{ m.kpi("Open fraud alerts", k.fraud_high + k.fraud_medium, k.fraud_high ~ " high &middot; " ~ k.fraud_medium ~ " medium &middot; <a href='/fraud?open=1'>review &rsaquo;</a>", "red") }}
+  {{ m.kpi("Active policies", k.active_policies|num, (k.lives_covered|num) ~ " lives &middot; premium " ~ (k.premium_in_force|inr_short), "green") }}
+</div>
+
+<div class="grid mt" style="grid-template-columns: minmax(0,2fr) minmax(0,1fr)">
+  <div class="card">
+    <div class="card-head"><div><h2>Monthly claim inflow &amp; payout</h2><p>By month of admission</p></div><a class="small" href="/analytics#monthly_trend">Details</a></div>
+    <div class="card-body"><div class="chart-box"><canvas id="trend"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Claims by status</h2><p>Current lifecycle position</p></div></div>
+    <div class="card-body"><div class="chart-box"><canvas id="status"></canvas></div></div>
+  </div>
+</div>
+
+<div class="grid g2 mt">
+  <div class="card">
+    <div class="card-head"><div><h2>Insurer scorecard</h2><p>Claim settlement ratio vs incurred claim ratio</p></div><a class="small" href="/analytics#insurer_performance">Details</a></div>
+    <div class="card-body"><div class="chart-box"><canvas id="insurers"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Top diagnoses</h2><p>Primary ICD-10 code, number of claims</p></div><a class="small" href="/analytics#top_diagnoses">Details</a></div>
+    <div class="card-body"><div class="chart-box"><canvas id="icd"></canvas></div></div>
+  </div>
+</div>
+
+<div class="grid g2 mt">
+  <div class="card">
+    <div class="card-head"><div><h2>My work queue</h2><p>Open claims assigned to you</p></div><a class="small" href="/claims?assigned=me&status=open">View all</a></div>
+    <div class="card-body flush">{{ m.claims_table(my_queue, show_hospital=False, show_risk=False, compact=True) if my_queue else '<div class="empty">Nothing assigned to you right now. Switch user (top right) or pick a claim from the <a href="/claims?status=Under%20Review">review queue</a>.</div>'|safe }}</div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Fraud alerts on open claims</h2><p>Highest risk first</p></div><a class="small" href="/fraud?open=1">Fraud watch</a></div>
+    <div class="card-body flush">{{ m.claims_table(alerts, show_hospital=False, compact=True) }}</div>
+  </div>
+</div>
+
+<div class="grid g2 mt">
+  <div class="card">
+    <div class="card-head"><div><h2>Approved &mdash; awaiting payment</h2><p>Settle these through the ACID transaction</p></div><a class="small" href="/claims?status=awaiting">View all</a></div>
+    <div class="card-body flush">{{ m.claims_table(awaiting, show_risk=False, show_hospital=False) }}</div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Latest intimations</h2><p>{{ open_grievances }} grievances open &middot; <a href="/grievances?status=Open">view</a></p></div><a class="small" href="/claims">All claims</a></div>
+    <div class="card-body flush">{{ m.claims_table(recent, show_risk=False, show_hospital=False, compact=True) }}</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(async () => {
+  const [trend, status, ins, icd] = await Promise.all(
+    ["monthly_trend", "status_mix", "insurer_performance", "top_diagnoses"].map(CS.report));
+  CS.line("trend", trend.rows.map(r => r.month), [
+    { label: "Claimed", data: trend.rows.map(r => r.claimed), money: true, fill: true },
+    { label: "Settled", data: trend.rows.map(r => r.settled), money: true, color: "#059669" },
+  ]);
+  CS.doughnut("status", status.rows.map(r => r.status), status.rows.map(r => r.claims),
+              status.rows.map(r => STATUS_COLOR_HEX[r.status]));
+  CS.bar("insurers", ins.rows.map(r => r.insurer.split(" ")[0]), [
+    { label: "Settlement ratio %", data: ins.rows.map(r => r.settlement_ratio), suffix: "%" },
+    { label: "Incurred claim ratio %", data: ins.rows.map(r => r.incurred_claim_ratio), suffix: "%", color: "#d97706" },
+  ]);
+  CS.bar("icd", icd.rows.map(r => r.description.length > 26 ? r.description.slice(0, 25) + "…" : r.description),
+         [{ label: "Claims", data: icd.rows.map(r => r.claims) }], { horizontal: true });
+})();
+</script>
+{% endblock %}

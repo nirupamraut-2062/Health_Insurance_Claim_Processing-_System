@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}New Claim{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/claims">Claims</a> / New</div>
+    <h1>Intimate a new claim</h1>
+    <p>The claim is validated against the <code>$jsonSchema</code> rules, scored by the fraud engine and written to the audit log.</p>
+  </div>
+</div>
+
+{% if error %}<div class="alert error"><b>Could not create the claim:</b> {{ error }}</div>{% endif %}
+
+<form method="post" id="claimForm">
+<div class="split">
+<div>
+  <div class="card">
+    <div class="card-head"><div><h2>1. Policy &amp; patient</h2><p>Look up the policy to load insured members</p></div></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="wide field"><label>Policy number</label>
+          <div class="btn-row"><input name="policy_number" id="policy" value="{{ form.policy_number or '' }}" placeholder="e.g. KHI-HL-2021-000417" style="flex:1" required>
+          <button type="button" class="btn" onclick="lookup()">Look up</button></div>
+          <div class="small muted" style="margin-top:4px">Try: {% for s in samples %}<a href="#" onclick="document.getElementById('policy').value='{{ s }}';lookup();return false">{{ s }}</a>{{ ', ' if not loop.last }}{% endfor %}</div>
+        </div>
+        <div class="wide field"><label>Patient (insured member)</label>
+          <select name="member_id" id="member" required><option value="">Look up the policy first</option></select></div>
+      </div>
+      <div id="policyInfo" class="note hidden"></div>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <div class="card-head"><h2>2. Hospitalisation</h2></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="wide field"><label>Hospital</label>
+          <select name="hospital_id" id="hospital" required>
+            <option value="">Select hospital</option>
+            {% for h in hospitals %}<option value="{{ h.hospital_id }}" data-net="{{ h.network.insurer_ids|join(',') }}" data-tier="{{ h.city_tier }}" {{ 'selected' if form.hospital_id == h.hospital_id }}>{{ h.address.city }} &mdash; {{ h.name }}</option>{% endfor %}
+          </select>
+          <div class="small muted" id="netInfo" style="margin-top:4px"></div></div>
+        <div class="wide field"><label>Primary diagnosis (ICD-10)</label>
+          <select name="primary_icd" id="icd" required>
+            <option value="">Select diagnosis</option>
+            {% for i in icds %}<option value="{{ i.code }}" data-cost="{{ i.avg_cost }}" data-los="{{ i.avg_los }}" {{ 'selected' if form.primary_icd == i.code }}>{{ i.description }} ({{ i.code }})</option>{% endfor %}
+          </select>
+          <div class="small muted" id="icdInfo" style="margin-top:4px"></div></div>
+        <div class="field"><label>Claim type</label><select name="claim_type">{% for t in claim_types %}<option {{ 'selected' if form.claim_type == t }}>{{ t }}</option>{% endfor %}</select></div>
+        <div class="field"><label>Admission type</label><select name="admission_type">{% for t in admission_types %}<option {{ 'selected' if form.admission_type == t }}>{{ t }}</option>{% endfor %}</select></div>
+        <div class="field"><label>Admission date</label><input type="date" name="admission_date" value="{{ form.admission_date or '' }}" required></div>
+        <div class="field"><label>Discharge date</label><input type="date" name="discharge_date" value="{{ form.discharge_date or '' }}" required></div>
+        <div class="field"><label>Room category</label><select name="room_category" id="room">{% for r in room_categories if r != 'ICU' %}<option {{ 'selected' if form.room_category == r }}>{{ r }}</option>{% endfor %}</select></div>
+        <div class="field"><label>Room rent / day (&#8377;)</label><input type="number" name="room_rent_per_day" id="rent" min="0" value="{{ form.room_rent_per_day or '' }}"></div>
+        <div class="field"><label>ICU days</label><input type="number" name="icu_days" min="0" value="{{ form.icu_days or 0 }}"></div>
+        <div class="field"><label>&nbsp;</label><label class="inline-check"><input type="checkbox" name="documents_complete" value="1" {{ 'checked' if form.documents_complete }}> All documents received</label></div>
+        <div class="full field"><label>Treatment notes / remarks</label><textarea name="remarks" rows="2">{{ form.remarks or '' }}</textarea></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="card">
+    <div class="card-head"><div><h2>3. Hospital bill</h2><p>Itemised final bill (&#8377;)</p></div><button type="button" class="btn sm" onclick="suggest()">Suggest</button></div>
+    <div class="card-body">
+      {% for key, label in bill_heads %}
+      <div class="field" style="display:grid;grid-template-columns:1fr 130px;gap:8px;align-items:center;margin-bottom:6px">
+        <label style="margin:0;font-weight:500">{{ label }}</label>
+        <input type="number" min="0" name="{{ key }}" class="bill" value="{{ form[key] or '' }}" placeholder="0">
+      </div>
+      {% endfor %}
+      <div class="stat-row" style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px"><b>Total</b><b id="total">&#8377;0</b></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:14px">Submit claim intimation</button>
+    </div>
+  </div>
+</div>
+</div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TARIFF = {{ room_tariff|tojson }};
+let policy = null;
+async function lookup() {
+  const pn = document.getElementById("policy").value.trim();
+  const info = document.getElementById("policyInfo");
+  const sel = document.getElementById("member");
+  if (!pn) return;
+  const res = await fetch(`/api/policies/${encodeURIComponent(pn)}`);
+  const data = await res.json();
+  info.classList.remove("hidden");
+  if (!res.ok) { info.innerHTML = `<b style="color:var(--red)">${data.error}</b>`; sel.innerHTML = ""; policy = null; return; }
+  policy = data;
+  const rr = data.room_rent_limit.type === "percent_si" ? `${data.room_rent_limit.value}% of SI per day`
+           : data.room_rent_limit.type === "category" ? `up to ${data.room_rent_limit.value}` : "no limit";
+  info.innerHTML = `<b>${data.plan}</b> &middot; ${data.insurer}<br>Status <b>${data.status}</b> &middot; cover ${data.start_date.slice(0,10)} to ${data.end_date.slice(0,10)}<br>
+    Sum insured ${CS.inr(data.sum_insured)} &middot; available <b>${CS.inr(data.available_cover)}</b> &middot; room rent ${rr} &middot; co-pay ${data.copay}%`;
+  const keep = "{{ form.member_id or '' }}";
+  sel.innerHTML = data.members.map(m => `<option value="${m.member_id}" ${m.member_id === keep ? "selected" : ""}>${m.name} (${m.relation}, ${m.age} yrs)</option>`).join("");
+  network();
+}
+function network() {
+  const opt = document.getElementById("hospital").selectedOptions[0];
+  const el = document.getElementById("netInfo");
+  if (!opt || !opt.value) { el.textContent = ""; return; }
+  if (!policy) { el.textContent = ""; return; }
+  const ok = opt.dataset.net.split(",").includes(policy.insurer_id);
+  el.innerHTML = ok ? '<span style="color:var(--green)">&#10003; Network hospital &mdash; cashless available</span>'
+                    : '<span style="color:var(--amber)">Non-network hospital &mdash; reimbursement only</span>';
+}
+function rent() {
+  const opt = document.getElementById("hospital").selectedOptions[0];
+  const tier = opt && opt.dataset.tier ? opt.dataset.tier : 2;
+  document.getElementById("rent").value = TARIFF[document.getElementById("room").value][tier];
+}
+function total() {
+  let t = 0; document.querySelectorAll(".bill").forEach(i => t += Number(i.value || 0));
+  document.getElementById("total").textContent = CS.inr(t);
+}
+function suggest() {
+  const icd = document.getElementById("icd").selectedOptions[0];
+  if (!icd || !icd.value) { alert("Select a diagnosis first"); return; }
+  const cost = Number(icd.dataset.cost), los = Math.max(1, Number(icd.dataset.los));
+  const r = Number(document.getElementById("rent").value || 3000);
+  const set = (k, v) => document.querySelector(`[name=${k}]`).value = Math.round(v / 10) * 10;
+  set("room_charges", r * los); set("nursing_charges", cost * .06); set("doctor_fees", cost * .08);
+  set("surgeon_ot_charges", cost * .22); set("investigations", cost * .14); set("medicines", cost * .22);
+  set("consumables", cost * .07); set("admin_charges", cost * .02);
+  const adm = document.querySelector("[name=admission_date]");
+  if (!adm.value) {
+    const d = new Date(); d.setDate(d.getDate() - los - 1); adm.value = d.toISOString().slice(0, 10);
+    const e = new Date(d); e.setDate(e.getDate() + los); document.querySelector("[name=discharge_date]").value = e.toISOString().slice(0, 10);
+  }
+  total();
+}
+document.getElementById("hospital").addEventListener("change", () => { network(); rent(); });
+document.getElementById("room").addEventListener("change", rent);
+document.getElementById("icd").addEventListener("change", e => {
+  const o = e.target.selectedOptions[0];
+  document.getElementById("icdInfo").textContent = o.value ? `Benchmark cost ${CS.inr(o.dataset.cost)} · typical stay ${o.dataset.los} day(s)` : "";
+});
+document.querySelectorAll(".bill").forEach(i => i.addEventListener("input", total));
+total();
+if (document.getElementById("policy").value) lookup();
+</script>
+{% endblock %}

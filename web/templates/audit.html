@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Audit Log{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Audit log</h1><p>Append-only record of every change &middot; a TTL index removes entries after the 3-year retention period.</p></div></div>
+<div class="card">
+  <form class="filters" method="get">
+    <div class="f"><label>Action</label><select name="action"><option value="">All</option>{% for a in actions %}<option {{ 'selected' if f.action == a }}>{{ a }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Entity</label><select name="entity_type"><option value="">All</option>{% for e in ['claim', 'policy', 'grievance', 'system'] %}<option {{ 'selected' if f.entity_type == e }}>{{ e }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Record id</label><input name="entity_id" value="{{ f.entity_id or '' }}" placeholder="CLM-2026-..."></div>
+    <div class="f"><label>Actor id</label><input name="actor_id" value="{{ f.actor_id or '' }}" placeholder="USR003" style="width:100px"></div>
+    <div class="f"><button class="btn primary">Apply</button></div><div class="f"><a class="btn" href="/audit">Reset</a></div>
+  </form>
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Record</th><th>Summary</th></tr></thead>
+    <tbody>{% for a in rows %}
+      <tr><td class="nowrap">{{ a.timestamp|datetime }}</td>
+        <td>{{ a.actor_name }}<div class="sub">{{ a.actor_role }}</div></td>
+        <td><span class="tag">{{ a.action }}</span></td>
+        <td>{% if a.entity_type == 'claim' %}<a href="/claims/{{ a.entity_id }}">{{ a.entity_id }}</a>{% elif a.entity_type == 'policy' %}<a href="/policies/{{ a.entity_id }}">{{ a.entity_id }}</a>{% else %}{{ a.entity_id }}{% endif %}</td>
+        <td>{{ a.summary }}{% if a.details and a.details.remarks %}<div class="sub">{{ a.details.remarks }}</div>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="5" class="empty">No entries.</td></tr>{% endfor %}</tbody></table></div>
+  {{ m.pager(pg) }}
+</div>
+{% endblock %}

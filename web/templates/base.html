@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ APP_NAME }}{% endblock %} &middot; {{ APP_NAME }}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 4 7v8c0 7.5 5.1 13.4 12 15 6.9-1.6 12-7.5 12-15V7z' fill='%232563eb'/%3E%3Cpath d='M14 10h4v4h4v4h-4v4h-4v-4h-4v-4h4z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/vendor/chart.umd.min.js"></script>
+  <script src="/static/app.js"></script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 4 7v8c0 7.5 5.1 13.4 12 15 6.9-1.6 12-7.5 12-15V7z" fill="#2563eb"/><path d="M14 10h4v4h4v4h-4v4h-4v-4h-4v-4h4z" fill="#fff"/></svg>
+      <div><b>{{ APP_NAME }}</b><span>Health Insurance Claims<br>&amp; Analytics</span></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">Operations</div>
+      <a href="/" class="{{ 'active' if active == 'dashboard' }}">&#9638; Dashboard</a>
+      <a href="/claims" class="{{ 'active' if active == 'claims' }}">&#9776; Claims</a>
+      <a href="/claims/new" class="{{ 'active' if active == 'new_claim' }}">&#10010; New Claim</a>
+      <a href="/claims?assigned=me&status=open" class="{{ 'active' if active == 'queue' }}">&#9873; My Work Queue</a>
+      <a href="/fraud" class="{{ 'active' if active == 'fraud' }}">&#9888; Fraud Watch</a>
+      <a href="/grievances" class="{{ 'active' if active == 'grievances' }}">&#9993; Grievances</a>
+      <div class="nav-group">Master Data</div>
+      <a href="/policies" class="{{ 'active' if active == 'policies' }}">&#9741; Policies</a>
+      <a href="/members" class="{{ 'active' if active == 'members' }}">&#9787; Members</a>
+      <a href="/hospitals" class="{{ 'active' if active == 'hospitals' }}">&#10010; Hospitals</a>
+      <div class="nav-group">Insights</div>
+      <a href="/analytics" class="{{ 'active' if active == 'analytics' }}">&#9650; Analytics</a>
+      <div class="nav-group">Database</div>
+      <a href="/database" class="{{ 'active' if active == 'database' }}">&#9707; DB Console</a>
+      <a href="/database/query" class="{{ 'active' if active == 'query' }}">&#10095; Query Playground</a>
+      <a href="/audit" class="{{ 'active' if active == 'audit' }}">&#9719; Audit Log</a>
+    </nav>
+    <div class="sidebar-foot">
+      {{ APP_NAME }} v{{ VERSION }}<br>
+      MongoDB &middot; FastAPI &middot; Chart.js<br>
+      <span>All data is synthetic.</span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <form class="search" action="/claims" method="get">
+        <input type="search" name="q" placeholder="Search claims - number, patient, hospital, diagnosis..." value="{{ request.query_params.get('q', '') }}">
+      </form>
+      <div class="spacer"></div>
+      <span class="mode {{ 'mock' if mock else 'real' }}" title="{{ 'In-memory MongoDB (mongomock). Set CLAIMSURE_MONGO_URI to use a real server.' if mock else 'Connected to a MongoDB server' }}">
+        {{ 'MOCK MODE &middot; mongomock'|safe if mock else 'LIVE &middot; MongoDB'|safe }}
+      </span>
+      <form class="userbox" action="/switch-user" method="post">
+        <div class="avatar">{{ user.name.replace('Dr. ', '').split()[0][0] }}{{ user.name.split()[-1][0] }}</div>
+        <input type="hidden" name="back" value="{{ request.url.path }}">
+        <select name="user_id" onchange="this.form.submit()" title="Acting as (approval limit {{ user.approval_limit|inr }})">
+          {% for u in users %}
+          <option value="{{ u.user_id }}" {{ 'selected' if u.user_id == user.user_id }}>{{ u.name }} &mdash; {{ u.role }}</option>
+          {% endfor %}
+        </select>
+      </form>
+    </header>
+
+    <main class="content">
+      {% if flash %}
+      <div class="alert {{ flash.kind }}">
+        <b>{{ flash.message }}</b>
+        {% if flash.steps %}
+        <ol>{% for s in flash.steps %}<li><b>{{ s[0] }}</b> &mdash; {{ s[1] }}</li>{% endfor %}</ol>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

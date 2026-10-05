@@ -1,0 +1,82 @@
+{
+  "claims": [
+    {"keys": [["claim_number", 1]], "options": {"name": "uq_claim_number", "unique": true}, "kind": "Unique", "purpose": "Business key lookup; rejects duplicate claim numbers"},
+    {"keys": [["status", 1], ["submitted_at", -1]], "options": {"name": "status_submitted"}, "kind": "Compound", "purpose": "Work queues: claims in a status, newest first (Equality-Sort-Range rule)"},
+    {"keys": [["member_id", 1], ["admission_date", -1]], "options": {"name": "member_admission"}, "kind": "Compound", "purpose": "Member claim history and duplicate-stay fraud check"},
+    {"keys": [["policy_number", 1], ["admission_date", -1]], "options": {"name": "policy_admission"}, "kind": "Compound", "purpose": "Policy claim history and sum-insured utilisation"},
+    {"keys": [["insurer_id", 1], ["status", 1]], "options": {"name": "insurer_status"}, "kind": "Compound", "purpose": "Insurer dashboards (claim settlement ratio)"},
+    {"keys": [["hospital_id", 1], ["admission_date", -1]], "options": {"name": "hospital_admission"}, "kind": "Compound", "purpose": "Hospital performance and network analytics"},
+    {"keys": [["admission_date", -1]], "options": {"name": "admission_date"}, "kind": "Single field", "purpose": "Date-range filters and monthly trend reports"},
+    {"keys": [["diagnosis.icd_code", 1]], "options": {"name": "diagnosis_icd"}, "kind": "Multikey", "purpose": "Search claims by any diagnosis code (array field)"},
+    {"keys": [["assigned_to", 1], ["status", 1]], "options": {"name": "adjuster_queue", "partialFilterExpression": {"assigned_to": {"$type": "string"}}}, "kind": "Partial", "purpose": "Adjuster work queue; only indexes claims that are assigned"},
+    {"keys": [["fraud.score", -1]], "options": {"name": "fraud_watchlist", "partialFilterExpression": {"fraud.score": {"$gte": 30}}}, "kind": "Partial", "purpose": "Fraud watch-list; only medium/high-risk claims are indexed"},
+    {"keys": [["snapshot.member_name", "text"], ["snapshot.hospital_name", "text"], ["diagnosis.description", "text"], ["treatment.procedure", "text"]],
+     "options": {"name": "claims_text", "weights": {"snapshot.member_name": 10, "diagnosis.description": 5, "treatment.procedure": 3, "snapshot.hospital_name": 2}},
+     "kind": "Text", "purpose": "Full-text search across patient, hospital, diagnosis and procedure"}
+  ],
+  "policies": [
+    {"keys": [["policy_number", 1]], "options": {"name": "uq_policy_number", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"},
+    {"keys": [["insured_members.member_id", 1]], "options": {"name": "insured_member"}, "kind": "Multikey", "purpose": "Find the policies covering a member (array of embedded documents)"},
+    {"keys": [["proposer_id", 1]], "options": {"name": "proposer"}, "kind": "Single field", "purpose": "Policies bought by a customer"},
+    {"keys": [["status", 1], ["end_date", 1]], "options": {"name": "status_end_date"}, "kind": "Compound", "purpose": "Renewal-due reports"},
+    {"keys": [["insurer_id", 1], ["plan_id", 1]], "options": {"name": "insurer_plan"}, "kind": "Compound", "purpose": "Portfolio and loss-ratio analytics"},
+    {"keys": [["agent_id", 1]], "options": {"name": "agent", "sparse": true}, "kind": "Sparse", "purpose": "Agent leaderboard; online policies have no agent"}
+  ],
+  "members": [
+    {"keys": [["member_id", 1]], "options": {"name": "uq_member_id", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"},
+    {"keys": [["contact.phone", 1]], "options": {"name": "phone"}, "kind": "Single field", "purpose": "Call-centre lookup by mobile number"},
+    {"keys": [["name", 1]], "options": {"name": "member_name"}, "kind": "Single field", "purpose": "Prefix search by name"},
+    {"keys": [["family_id", 1]], "options": {"name": "family"}, "kind": "Single field", "purpose": "Group family members"},
+    {"keys": [["address.state", 1], ["address.city", 1]], "options": {"name": "state_city"}, "kind": "Compound", "purpose": "Geographic segmentation"}
+  ],
+  "hospitals": [
+    {"keys": [["hospital_id", 1]], "options": {"name": "uq_hospital_id", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"},
+    {"keys": [["rohini_id", 1]], "options": {"name": "uq_rohini", "unique": true}, "kind": "Unique", "purpose": "Each hospital registers once in ROHINI"},
+    {"keys": [["address.state", 1], ["address.city", 1]], "options": {"name": "hospital_state_city"}, "kind": "Compound", "purpose": "Network hospital locator"},
+    {"keys": [["network.insurer_ids", 1]], "options": {"name": "network_insurers"}, "kind": "Multikey", "purpose": "Cashless network of an insurer"},
+    {"keys": [["location", "2dsphere"]], "options": {"name": "geo_location"}, "kind": "Geospatial", "purpose": "Find nearest network hospitals ($near)"}
+  ],
+  "doctors": [
+    {"keys": [["doctor_id", 1]], "options": {"name": "uq_doctor_id", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"},
+    {"keys": [["registration_no", 1]], "options": {"name": "uq_registration", "unique": true}, "kind": "Unique", "purpose": "Medical council registration is unique"},
+    {"keys": [["hospital_id", 1], ["specialization", 1]], "options": {"name": "hospital_specialization"}, "kind": "Compound", "purpose": "Doctors of a hospital by speciality"}
+  ],
+  "payments": [
+    {"keys": [["payment_id", 1]], "options": {"name": "uq_payment_id", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"},
+    {"keys": [["claim_number", 1]], "options": {"name": "uq_payment_claim", "unique": true}, "kind": "Unique", "purpose": "Guarantees a claim can never be paid twice"},
+    {"keys": [["utr", 1]], "options": {"name": "uq_utr", "unique": true}, "kind": "Unique", "purpose": "Bank reference (UTR) is unique"},
+    {"keys": [["paid_at", -1]], "options": {"name": "paid_at"}, "kind": "Single field", "purpose": "Payment registers by date"}
+  ],
+  "grievances": [
+    {"keys": [["grievance_id", 1]], "options": {"name": "uq_grievance_id", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"},
+    {"keys": [["claim_number", 1]], "options": {"name": "grievance_claim"}, "kind": "Single field", "purpose": "Grievances raised on a claim"},
+    {"keys": [["status", 1], ["raised_at", -1]], "options": {"name": "grievance_status"}, "kind": "Compound", "purpose": "Open grievance queue"}
+  ],
+  "audit_logs": [
+    {"keys": [["entity_type", 1], ["entity_id", 1], ["timestamp", -1]], "options": {"name": "entity_history"}, "kind": "Compound", "purpose": "Full history of one record"},
+    {"keys": [["timestamp", 1]], "options": {"name": "ttl_retention", "expireAfterSeconds": 94608000}, "kind": "TTL", "purpose": "Auto-delete audit entries after the 3-year retention period"}
+  ],
+  "users": [
+    {"keys": [["user_id", 1]], "options": {"name": "uq_user_id", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"},
+    {"keys": [["email", 1]], "options": {"name": "uq_email", "unique": true}, "kind": "Unique", "purpose": "Login identity"}
+  ],
+  "agents": [
+    {"keys": [["agent_id", 1]], "options": {"name": "uq_agent_id", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"},
+    {"keys": [["license_no", 1]], "options": {"name": "uq_license", "unique": true}, "kind": "Unique", "purpose": "IRDAI licence is unique"}
+  ],
+  "plans": [
+    {"keys": [["plan_id", 1]], "options": {"name": "uq_plan_id", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"},
+    {"keys": [["insurer_id", 1]], "options": {"name": "plan_insurer"}, "kind": "Single field", "purpose": "Products of an insurer"}
+  ],
+  "insurers": [
+    {"keys": [["insurer_id", 1]], "options": {"name": "uq_insurer_id", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"},
+    {"keys": [["code", 1]], "options": {"name": "uq_insurer_code", "unique": true}, "kind": "Unique", "purpose": "Policy number prefix"}
+  ],
+  "tpas": [
+    {"keys": [["tpa_id", 1]], "options": {"name": "uq_tpa_id", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"}
+  ],
+  "icd_codes": [
+    {"keys": [["code", 1]], "options": {"name": "uq_icd_code", "unique": true}, "kind": "Unique", "purpose": "Business key lookup"},
+    {"keys": [["specialty", 1]], "options": {"name": "icd_specialty"}, "kind": "Single field", "purpose": "Diagnoses by speciality"}
+  ]
+}

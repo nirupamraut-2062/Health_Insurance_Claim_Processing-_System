@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Analytics{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Analytics</h1><p>{{ reports|length }} reports, each computed by a MongoDB aggregation pipeline &mdash; click <b>Pipeline</b> under any chart to see the exact query.</p></div>
+</div>
+
+<div class="grid g6">
+  {{ m.kpi("Claims", k.total_claims|num, "", "accent") }}
+  {{ m.kpi("Claimed", k.claimed|inr_short, "", "purple") }}
+  {{ m.kpi("Paid", k.settled|inr_short, "", "green") }}
+  {{ m.kpi("Settlement ratio", k.settlement_ratio ~ "%", "", "teal") }}
+  {{ m.kpi("Lives covered", k.lives_covered|num, "", "accent") }}
+  {{ m.kpi("Cover in force", k.cover_in_force|inr_short, "", "amber") }}
+</div>
+
+<div class="chips mt">
+  {% for r in reports %}<a class="chip" href="#{{ r.key }}">{{ r.title }}</a>{% endfor %}
+</div>
+
+<div class="grid g2 mt" id="reports">
+  {% for r in reports %}
+  <div class="card {{ 'span2' if r.key in ['monthly_trend', 'insurer_performance', 'hospital_performance', 'top_diagnoses', 'adjuster_productivity'] }}" id="{{ r.key }}">
+    <div class="card-head">
+      <div><h2>{{ r.title }}</h2><p>{{ r.description }}</p></div>
+      <span class="small muted" id="ms-{{ r.key }}">loading&hellip;</span>
+    </div>
+    <div class="card-body">
+      {% if r.chart != 'table' %}<div class="chart-box {{ 'tall' if r.key in ['monthly_trend', 'top_diagnoses'] }}"><canvas id="c-{{ r.key }}"></canvas></div>{% endif %}
+      <details class="mt"><summary>Data table</summary><div class="table-wrap mt" id="t-{{ r.key }}"></div></details>
+      <details class="mt"><summary>Pipeline <span class="muted small">db.{{ r.collection }}.aggregate(...)</span></summary><div id="p-{{ r.key }}"></div></details>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const money = new Set(["claimed", "settled", "paid", "amount", "premium", "avg_claimed", "avg_bill", "benchmark", "avg_cover"]);
+const short = s => s && s.length > 24 ? s.slice(0, 23) + "…" : s;
+function table(rows) {
+  if (!rows.length) return '<p class="muted">No rows</p>';
+  const cols = Object.keys(rows[0]);
+  const fmt = (c, v) => v === null || v === undefined ? "-" : money.has(c) ? CS.inr(v) : typeof v === "number" ? v.toLocaleString("en-IN") : v;
+  return `<table class="data"><thead><tr>${cols.map(c => `<th>${c.replace(/_/g, " ")}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map(r => `<tr>${cols.map(c => `<td class="${typeof r[c] === "number" ? "num" : ""}">${fmt(c, r[c])}</td>`).join("")}</tr>`).join("") +
+    "</tbody></table>";
+}
+const draw = {
+  monthly_trend: r => CS.line("c-monthly_trend", r.map(x => x.month), [
+    { label: "Claimed", data: r.map(x => x.claimed), money: true, fill: true },
+    { label: "Settled", data: r.map(x => x.settled), money: true, color: "#059669" }]),
+  status_mix: r => CS.doughnut("c-status_mix", r.map(x => x.status), r.map(x => x.claims), r.map(x => STATUS_COLOR_HEX[x.status])),
+  claim_type: r => CS.bar("c-claim_type", r.map(x => x.claim_type), [
+    { label: "Avg decision TAT (days)", data: r.map(x => x.avg_tat_days) },
+    { label: "Avg payment TAT (days)", data: r.map(x => x.avg_settlement_days), color: "#d97706" },
+    { label: "Rejection rate %", data: r.map(x => x.rejection_rate), color: "#dc2626" }]),
+  insurer_performance: r => CS.bar("c-insurer_performance", r.map(x => x.insurer.split(" ").slice(0, 2).join(" ")), [
+    { label: "Claim settlement ratio %", data: r.map(x => x.settlement_ratio), suffix: "%" },
+    { label: "Incurred claim ratio %", data: r.map(x => x.incurred_claim_ratio), suffix: "%", color: "#d97706" },
+    { label: "Avg decision TAT (days)", data: r.map(x => x.avg_tat_days), color: "#7c3aed" }]),
+  hospital_performance: r => CS.bar("c-hospital_performance", r.map(x => short(x.name) + ", " + x.city), [
+    { label: "Paid", data: r.map(x => x.paid), money: true }], { horizontal: true }),
+  top_diagnoses: r => CS.bar("c-top_diagnoses", r.map(x => short(x.description)), [
+    { label: "Average bill", data: r.map(x => x.avg_claimed), money: true },
+    { label: "Benchmark cost", data: r.map(x => x.benchmark), money: true, color: "#cbd5e1" }]),
+  specialty_mix: r => CS.bar("c-specialty_mix", r.map(x => x.specialty), [{ label: "Paid", data: r.map(x => x.paid), money: true }], { horizontal: true }),
+  age_bands: r => CS.bar("c-age_bands", r.map(x => x.band), [
+    { label: "Claims", data: r.map(x => x.claims) }]),
+  state_mix: r => CS.bar("c-state_mix", r.map(x => x.state), [{ label: "Claims", data: r.map(x => x.claims), color: "#0891b2" }], { horizontal: true }),
+  tat_buckets: r => CS.bar("c-tat_buckets", r.map(x => x.bucket), [
+    { label: "Cashless", data: r.map(x => x.cashless), stack: "s" },
+    { label: "Reimbursement", data: r.map(x => x.reimbursement), stack: "s", color: "#d97706" }],
+    { scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true } } }),
+  rejection_reasons: r => CS.bar("c-rejection_reasons", r.map(x => short(x.reason)), [{ label: "Claims", data: r.map(x => x.claims), color: "#dc2626" }], { horizontal: true }),
+  deductions: r => CS.bar("c-deductions", r.map(x => x.category), [{ label: "Amount deducted", data: r.map(x => x.amount), money: true, color: "#ea580c" }], { horizontal: true }),
+  plan_loss_ratio: r => CS.bar("c-plan_loss_ratio", r.map(x => x.category), [{ label: "Loss ratio %", data: r.map(x => x.loss_ratio), suffix: "%",
+    backgroundColor: r.map(x => x.loss_ratio > 100 ? "#dc2626" : x.loss_ratio > 75 ? "#d97706" : "#059669") }]),
+  adjuster_productivity: r => CS.bar("c-adjuster_productivity", r.map(x => x.name), [
+    { label: "Decisions", data: r.map(x => x.decisions) },
+    { label: "Rejections", data: r.map(x => x.rejections), color: "#dc2626" }]),
+  channel_mix: r => CS.doughnut("c-channel_mix", r.map(x => x.channel), r.map(x => x.policies)),
+  portfolio: r => CS.bar("c-portfolio", r.map(x => x.policy_type), [
+    { label: "Policies", data: r.map(x => x.policies) }, { label: "Lives", data: r.map(x => x.lives), color: "#0d9488" }]),
+  fraud_flags: r => CS.bar("c-fraud_flags", r.map(x => x.rule.replace(/_/g, " ")), [{ label: "Claims flagged", data: r.map(x => x.claims), color: "#dc2626" }], { horizontal: true }),
+  grievances: r => CS.bar("c-grievances", r.map(x => x.category), [
+    { label: "Total", data: r.map(x => x.total) }, { label: "Open", data: r.map(x => x.open), color: "#d97706" },
+    { label: "Ombudsman", data: r.map(x => x.ombudsman), color: "#dc2626" }]),
+};
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+document.querySelectorAll("#reports > .card").forEach(async card => {
+  const key = card.id;
+  try {
+    const rep = await CS.report(key);
+    document.getElementById("ms-" + key).textContent = `${rep.rows.length} rows · pipeline ${rep.ms} ms${rep.cached ? " (cached)" : ""}`;
+    if (draw[key]) draw[key](rep.rows);
+    document.getElementById("t-" + key).innerHTML = table(rep.rows);
+    document.getElementById("p-" + key).innerHTML = rep.pipelines.map((p, i) =>
+      `${rep.pipelines.length > 1 ? `<p class="small muted mt">Pipeline ${i + 1}</p>` : ""}<pre class="code mt">${esc(p)}</pre>`).join("");
+  } catch (e) { document.getElementById("ms-" + key).textContent = "failed"; }
+});
+</script>
+{% endblock %}

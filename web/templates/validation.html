@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Schema Validation{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="crumbs"><a href="/database">DB Console</a> / Schema validation</div>
+    <h1>Schema validation demo</h1>
+    <p>An attempt to insert a malformed claim into <code>claims</code>. The <code>$jsonSchema</code> validator rejects it before it reaches the collection.</p></div>
+</div>
+<div class="grid g2">
+  <div class="card">
+    <div class="card-head"><h2>Document we tried to insert</h2></div>
+    <div class="card-body"><pre class="code">{{ doc|pretty }}</pre></div>
+  </div>
+  <div>
+    <div class="alert error"><b>Insert rejected &mdash; {{ errors|length }} rule violations</b>
+      <ol>{% for e in errors %}<li class="mono">{{ e }}</li>{% endfor %}</ol></div>
+    {% if server_error %}
+    <div class="card"><div class="card-head"><h2>MongoDB server response (errInfo)</h2></div>
+      <div class="card-body"><pre class="code">{{ server_error }}</pre></div></div>
+    {% else %}
+    <div class="note">In mock mode these errors come from <code>claimsure/schema.py</code>, which evaluates the same <code>validators.json</code> that MongoDB uses with <code>collMod</code>. On a real server MongoDB returns a <code>DocumentValidationFailure</code> (code 121) with the details shown here.</div>
+    {% endif %}
+  </div>
+</div>
+<details class="mt card"><summary class="card-body">The claims validator</summary><div class="card-body"><pre class="code">{{ schema|pretty }}</pre></div></details>
+{% endblock %}

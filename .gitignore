@@ -61,3 +61,6 @@ venv.bak/
 *~
 .DS_Store
 Thumbs.db
+
+# Local MongoDB data directory
+mongo-data/

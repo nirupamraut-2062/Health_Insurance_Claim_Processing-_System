@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}{{ p.policy_number }}{% endblock %}
+{% block content %}
+{% set used = (100 * p.utilized_amount / p.total_cover) if p.total_cover else 0 %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/policies">Policies</a> / {{ p.policy_number }}</div>
+    <h1 class="mono">{{ p.policy_number }} &nbsp;{{ m.pill(p.status, {'Active': 'green', 'Expired': 'gray', 'Cancelled': 'red', 'Lapsed': 'amber'}[p.status]) }}</h1>
+    <p>{{ plan.name }} &middot; {{ insurer.name }} &middot; {{ p.policy_type }}</p>
+  </div>
+  <div class="btn-row">
+    {% if p.status == 'Active' %}<a class="btn primary" href="/claims/new?policy={{ p.policy_number }}">&#10010; Intimate claim</a>{% endif %}
+  </div>
+</div>
+
+<div class="grid g4">
+  {{ m.kpi("Total cover", p.total_cover|inr, "Sum insured " ~ (p.sum_insured|inr) ~ " + no-claim bonus " ~ (p.cumulative_bonus|inr), "accent") }}
+  {{ m.kpi("Available this year", p.available_cover|inr, ('%.0f'|format(used)) ~ "% utilised", "green" if used < 50 else "amber") }}
+  {{ m.kpi("Annual premium", p.premium.total|inr, "Base " ~ (p.premium.base|inr) ~ " + GST " ~ (p.premium.gst|inr) ~ " &middot; paid by " ~ p.premium.paid_by, "purple") }}
+  {{ m.kpi("Claims on policy", claims|length, (claims|sum(attribute='settled_amount'))|inr ~ " paid in total", "teal") }}
+</div>
+
+<div class="split mt">
+<div>
+  <div class="card">
+    <div class="card-head"><div><h2>Insured members</h2><p>Embedded array <code>insured_members[]</code> &mdash; a subset of each member document</p></div></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th>Member</th><th>Relation</th><th>Age</th><th>Pre-existing conditions</th><th>Covered since</th></tr></thead>
+      <tbody>{% for im in p.insured_members %}
+        <tr><td><a href="/members/{{ im.member_id }}">{{ im.name }}</a><div class="sub">{{ im.member_id }}</div></td><td>{{ im.relation }}</td>
+          <td>{{ age_on(im.dob) }}</td><td>{% for c in im.pre_existing_conditions %}<span class="tag">{{ c }}</span>{% else %}<span class="muted">None declared</span>{% endfor %}</td>
+          <td>{{ im.covered_since|date }}</td></tr>
+      {% endfor %}</tbody></table></div>
+  </div>
+
+  <div class="card mt">
+    <div class="card-head"><h2>Claims history</h2></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th>Claim</th><th>Patient</th><th>Admitted</th><th>Diagnosis</th><th class="num">Claimed</th><th class="num">Settled</th><th>Status</th></tr></thead>
+      <tbody>{% for c in claims %}
+        <tr><td><a href="/claims/{{ c.claim_number }}">{{ c.claim_number }}</a><div class="sub">{{ c.claim_type }}</div></td><td>{{ c.snapshot.member_name }}</td>
+          <td>{{ c.admission_date|date }}</td><td>{{ c.diagnosis[0].description|truncate(30) }}</td>
+          <td class="num">{{ c.claimed_amount|inr }}</td><td class="num">{{ c.settled_amount|inr }}</td><td>{{ m.status(c.status) }}</td></tr>
+      {% else %}<tr><td colspan="7" class="empty">No claims on this policy &mdash; eligible for no-claim bonus.</td></tr>{% endfor %}</tbody></table></div>
+  </div>
+
+  <div class="card mt">
+    <div class="card-head"><div><h2>Renewal history</h2><p>Embedded array <code>renewal_history[]</code> &mdash; one entry per policy year</p></div></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th>Year</th><th>Period</th><th class="num">Sum insured</th><th class="num">NCB</th><th class="num">Premium</th></tr></thead>
+      <tbody>{% for t in p.renewal_history|reverse %}
+        <tr><td>{{ t.term }}</td><td>{{ t.start_date|date }} &ndash; {{ t.end_date|date }}</td><td class="num">{{ t.sum_insured|inr }}</td>
+          <td class="num">{{ t.ncb_percent }}%</td><td class="num">{{ t.premium.total|inr }}</td></tr>
+      {% endfor %}</tbody></table></div>
+  </div>
+</div>
+
+<div>
+  <div class="card">
+    <div class="card-head"><h2>Policy details</h2></div>
+    <div class="card-body"><table class="kv">
+      <tr><td>First inception</td><td>{{ p.first_inception_date|date }}</td></tr>
+      <tr><td>Current term</td><td>{{ p.start_date|date }} &ndash; {{ p.end_date|date }}</td></tr>
+      {% if p.cancelled_on %}<tr><td>Cancelled on</td><td>{{ p.cancelled_on|date }}</td></tr>{% endif %}
+      <tr><td>Renewals</td><td>{{ p.renewal_count }}</td></tr>
+      <tr><td>Sales channel</td><td>{{ p.channel }}{% if agent %}<div class="small muted">{{ agent.name }} ({{ agent.type }})</div>{% endif %}</td></tr>
+      {% if p.employer %}<tr><td>Employer</td><td>{{ p.employer }}</td></tr>{% endif %}
+      <tr><td>Claims handled by</td><td>{{ tpa.name if tpa else 'In-house' }}</td></tr>
+      {% if p.nominee %}<tr><td>Nominee</td><td>{{ p.nominee.name }} ({{ p.nominee.relation }})</td></tr>{% endif %}
+    </table></div>
+  </div>
+  <div class="card mt">
+    <div class="card-head"><div><h2>Plan benefits</h2><p>{{ plan.plan_id }}</p></div></div>
+    <div class="card-body"><table class="kv">
+      {% set rr = plan.features.room_rent_limit %}
+      <tr><td>Room rent</td><td>{{ (rr.value ~ '% of SI / day') if rr.type == 'percent_si' else (('Up to ' ~ rr.value) if rr.type == 'category' else 'No capping') }}</td></tr>
+      <tr><td>Co-payment</td><td>{{ plan.features.copay_percent }}%</td></tr>
+      <tr><td>Pre / post hospitalisation</td><td>{{ plan.features.pre_hospitalisation_days }} / {{ plan.features.post_hospitalisation_days }} days</td></tr>
+      <tr><td>Ambulance</td><td>{{ plan.features.ambulance_limit|inr }}</td></tr>
+      <tr><td>Maternity</td><td>{{ (plan.features.maternity_limit|inr) if plan.features.maternity_cover else 'Not covered' }}</td></tr>
+      <tr><td>Restoration benefit</td><td>{{ 'Yes' if plan.features.restoration_benefit else 'No' }}</td></tr>
+      <tr><td>No-claim bonus</td><td>{{ plan.features.no_claim_bonus.percent_per_year }}% / year, max {{ plan.features.no_claim_bonus.max_percent }}%</td></tr>
+      <tr><td>Waiting periods</td><td>Initial {{ plan.waiting_periods.initial_days }} days &middot; PED {{ plan.waiting_periods.pre_existing_months }} months &middot; specific illness {{ plan.waiting_periods.specific_illness_months }} months</td></tr>
+      {% for s in plan.sub_limits %}<tr><td>Sub-limit</td><td>{{ s.label }}: {{ s.limit|inr }}</td></tr>{% endfor %}
+    </table></div>
+  </div>
+</div>
+</div>
+{% endblock %}

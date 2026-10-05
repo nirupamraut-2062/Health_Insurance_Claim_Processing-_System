@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Index Benchmark{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="crumbs"><a href="/database">DB Console</a> / Index benchmark</div>
+    <h1>Index benchmark</h1>
+    <p>{% if mock %}<b>Simulated plans</b> &mdash; mongomock has no query planner, so the &ldquo;with index&rdquo; plan is derived from the index definition. Connect a real MongoDB to see true <code>explain()</code> output.
+       {% else %}Each query runs twice with <code>explain("executionStats")</code>: once forced to a collection scan with <code>hint({$natural: 1})</code>, then with the optimiser's chosen index.{% endif %}</p></div>
+  <a class="btn" href="/database/benchmark">&#8635; Run again</a>
+</div>
+<div class="card">
+  <div class="card-body flush"><div class="table-wrap"><table class="data">
+    <thead><tr><th>Query</th><th>Without index</th><th>With index</th><th class="num">Docs examined</th><th class="num">Returned</th><th class="num">Reduction</th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr>
+        <td><b>{{ r.title }}</b><div class="mono small muted">db.{{ r.collection }}.find({{ r.filter|tojson }}){% if r.sort %}.sort({{ dict(r.sort)|tojson }}){% endif %}</div></td>
+        <td><span class="tag" style="background:var(--red-soft);color:var(--red)">{{ r.before.stages }}</span>
+          {% if r.before.time_ms is not none %}<div class="sub">{{ r.before.time_ms }} ms</div>{% endif %}</td>
+        <td><span class="tag" style="background:var(--green-soft);color:var(--green)">{{ r.after.stages }}</span><div class="sub mono">{{ r.after.index }}</div>
+          {% if r.after.time_ms is not none %}<div class="sub">{{ r.after.time_ms }} ms</div>{% endif %}</td>
+        <td class="num">{{ r.before.docs_examined|num }} &rarr; <b>{{ r.after.docs_examined|num }}</b></td>
+        <td class="num">{{ r.after.returned|num }}</td>
+        <td class="num"><b style="color:var(--green)">{{ r.reduction }}%</b></td>
+      </tr>
+    {% endfor %}</tbody></table></div></div>
+</div>
+<div class="grid g3 mt">
+  <div class="note"><b>COLLSCAN</b> reads every document in the collection. Cost grows linearly with data &mdash; fine for 50 docs, slow for 50 million.</div>
+  <div class="note"><b>IXSCAN &rarr; FETCH</b> walks the B-tree index to find matching keys and fetches only those documents. Ideally docs examined = docs returned.</div>
+  <div class="note"><b>ESR rule</b> for compound indexes: Equality fields first, then Sort fields, then Range fields &mdash; e.g. <code>{status: 1, submitted_at: -1}</code> serves &ldquo;status = X, newest first&rdquo; without an in-memory sort.</div>
+</div>
+{% endblock %}

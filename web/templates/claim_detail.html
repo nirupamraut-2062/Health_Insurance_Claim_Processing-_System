@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}{{ c.claim_number }}{% endblock %}
+{% block content %}
+{% set adj = c.adjudication %}
+{% set shown = adj if adj else preview %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/claims">Claims</a> / {{ c.claim_number }}</div>
+    <h1>{{ c.claim_number }} &nbsp;{{ m.status(c.status) }}</h1>
+    <p>{{ c.claim_type }} &middot; {{ c.admission_type }} admission &middot; intimated {{ c.intimation_date|datetime }}
+      {% if c.assigned_to %} &middot; assigned to <b>{{ staff[c.assigned_to].name if c.assigned_to in staff else c.assigned_to }}</b>{% endif %}</p>
+  </div>
+  <div class="btn-row">
+    {% if c.fraud %}{{ m.risk(c.fraud.risk_level, c.fraud.score) }}{% endif %}
+    <a class="btn" href="/audit?entity_id={{ c.claim_number }}">Audit trail</a>
+  </div>
+</div>
+
+<div class="grid g4">
+  {{ m.kpi("Amount claimed", c.claimed_amount|inr, "Room " ~ (c.room_category) ~ " &middot; " ~ c.length_of_stay ~ " day stay", "accent") }}
+  {{ m.kpi("Approved / payable" if adj else "Estimated payable", shown.payable_amount|inr,
+           ("Decision: " ~ adj.decision) if adj else "Live preview from the adjudication engine", "teal") }}
+  {{ m.kpi("Settled", c.settled_amount|inr if c.settled_amount else "-",
+           ("Paid " ~ (c.settled_at|date) ~ (" &middot; " ~ c.settlement_tat_days ~ " days from submission" if c.settlement_tat_days else "")) if c.settled_at else "Not paid yet", "green") }}
+  {{ m.kpi("Member pays", shown.member_payable|inr, "Deductions incl. co-pay " ~ (shown.copay_amount|inr), "red") }}
+</div>
+
+<div class="split mt">
+<div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-head"><h2>Patient &amp; policy</h2></div>
+      <div class="card-body">
+        <table class="kv">
+          <tr><td>Patient</td><td><a href="/members/{{ c.member_id }}" class="strong">{{ c.snapshot.member_name }}</a> <span class="muted">({{ c.member_id }})</span><br>
+            <span class="small">{{ c.snapshot.member_gender }}, {{ c.snapshot.member_age }} yrs at admission &middot; {{ c.snapshot.relation }}</span></td></tr>
+          {% if member and member.pre_existing_conditions %}<tr><td>Declared PED</td><td>{% for p in member.pre_existing_conditions %}<span class="tag">{{ p }}</span>{% endfor %}</td></tr>{% endif %}
+          <tr><td>Policy</td><td><a href="/policies/{{ c.policy_number }}" class="mono">{{ c.policy_number }}</a> {{ m.pill(policy.status, 'green' if policy.status == 'Active' else 'gray') }}</td></tr>
+          <tr><td>Plan</td><td>{{ plan.name }}<div class="small muted">{{ policy.policy_type }} &middot; since {{ policy.first_inception_date|date }}</div></td></tr>
+          <tr><td>Insurer</td><td>{{ insurer.name }}</td></tr>
+          <tr><td>Claims handled by</td><td>{{ tpa.name if tpa else "In-house claims team" }}</td></tr>
+          <tr><td>Sum insured</td><td>{{ policy.total_cover|inr }} <span class="small muted">({{ policy.sum_insured|inr }} + bonus {{ policy.cumulative_bonus|inr }})</span>
+            {% set used = (100 * policy.utilized_amount / policy.total_cover) if policy.total_cover else 0 %}
+            <div class="progress mt {{ 'red' if used > 80 else ('amber' if used > 50 else '') }}" style="margin-top:6px"><span style="width: {{ [used, 100]|min }}%"></span></div>
+            <div class="small muted">{{ policy.utilized_amount|inr }} used &middot; <b>{{ policy.available_cover|inr }}</b> available this year</div></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Hospitalisation</h2></div>
+      <div class="card-body">
+        <table class="kv">
+          <tr><td>Hospital</td><td><a href="/hospitals/{{ c.hospital_id }}" class="strong">{{ c.snapshot.hospital_name }}</a><br>
+            <span class="small">{{ c.snapshot.hospital_city }}, {{ c.snapshot.hospital_state }} &middot; Tier {{ c.snapshot.hospital_tier }}</span>
+            {{ m.pill('Network' if c.snapshot.network_hospital else 'Non-network', 'green' if c.snapshot.network_hospital else 'amber') }}
+            {% if hospital and hospital.watchlisted %}{{ m.pill('Watch-listed', 'red') }}{% endif %}</td></tr>
+          <tr><td>Treating doctor</td><td>{{ doctor.name if doctor else '-' }}{% if doctor %}<div class="small muted">{{ doctor.qualification }}</div>{% endif %}</td></tr>
+          <tr><td>Admitted</td><td>{{ c.admission_date|datetime }}</td></tr>
+          <tr><td>Discharged</td><td>{{ c.discharge_date|datetime }}</td></tr>
+          <tr><td>Stay</td><td>{{ c.length_of_stay }} day(s){% if c.icu_days %} incl. {{ c.icu_days }} in ICU{% endif %} &middot; {{ c.room_category }} @ {{ c.room_rent_per_day|inr }}/day</td></tr>
+          <tr><td>Treatment</td><td>{{ c.treatment.procedure }}<div class="small muted">{{ c.treatment.specialty }} &middot; {{ c.treatment.line }}</div></td></tr>
+          <tr><td>Diagnosis</td><td>{% for d in c.diagnosis %}<div><span class="mono">{{ d.icd_code }}</span> {{ d.description }} <span class="small muted">({{ d.type }})</span></div>{% endfor %}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <div class="card-head">
+      <div><h2>Adjudication worksheet</h2>
+        <p>{% if adj %}Decision recorded {{ adj.adjudicated_at|datetime }} by {{ staff[adj.adjudicated_by].name if adj.adjudicated_by in staff else adj.adjudicated_by }}{% else %}Live preview &mdash; nothing is saved until the claim is adjudicated{% endif %}</p></div>
+      {{ m.status(shown.decision) }}
+    </div>
+    <div class="card-body">
+      <div class="grid g2">
+        <div>
+          <h3 class="mb">Hospital bill</h3>
+          <table class="data">
+            <tbody>
+            {% for key, label in bill_heads %}{% if c.bill[key] %}
+              <tr><td>{{ label }}</td><td class="num">{{ c.bill[key]|inr }}</td></tr>
+            {% endif %}{% endfor %}
+            <tr><td class="strong">Total claimed</td><td class="num strong">{{ c.bill.total|inr }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3 class="mb">Deductions as per policy</h3>
+          {% if shown.eligible %}
+          <table class="data">
+            <tbody>
+            {% for d in shown.deductions %}
+              <tr><td>{{ d.category }}<div class="sub">{{ d.description }}</div></td><td class="num">&minus; {{ d.amount|inr }}</td></tr>
+            {% else %}
+              <tr><td colspan="2" class="muted">No deductions</td></tr>
+            {% endfor %}
+            <tr><td class="strong">Payable by insurer</td><td class="num strong" style="color:var(--green)">{{ shown.payable_amount|inr }}</td></tr>
+            </tbody>
+          </table>
+          {% if shown.eligible_room_rent %}<p class="small muted">Eligible room rent: {{ shown.eligible_room_rent|inr }}/day ({{ plan.features.room_rent_limit.type|replace('percent_si', plan.features.room_rent_limit.value ~ '% of sum insured')|replace('category', plan.features.room_rent_limit.value) }})</p>{% endif %}
+          {% else %}
+          <div class="alert error"><b>Not payable &mdash; {{ shown.rejection_code }}</b><br>{{ shown.rejection_reason }}</div>
+          {% endif %}
+        </div>
+      </div>
+      <h3 class="mt mb">Eligibility checks</h3>
+      <table class="data">
+        <thead><tr><th style="width:36px"></th><th>Rule</th><th>Detail</th></tr></thead>
+        <tbody>
+        {% for ch in preview.checks %}
+          <tr><td>{% if ch.passed %}<span class="check">&#10003;</span>{% else %}<span class="cross">&#10007;</span>{% endif %}</td>
+            <td>{{ ch.rule }}</td><td class="muted">{{ ch.detail }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid g2 mt">
+    <div class="card">
+      <div class="card-head"><h2>Documents</h2><span class="small muted">{{ c.documents|selectattr('status', 'equalto', 'Verified')|list|length }}/{{ c.documents|length }} verified</span></div>
+      <div class="card-body flush">
+        <table class="data"><tbody>
+        {% for d in c.documents %}
+          <tr><td>{{ d.type }}<div class="sub">{{ d.uploaded_at|datetime if d.uploaded_at else 'Not received' }}</div></td>
+            <td class="right">{{ m.pill(d.status, {'Verified': 'green', 'Received': 'blue', 'Pending': 'amber'}[d.status]) }}</td></tr>
+        {% endfor %}
+        </tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Pre-authorisation &amp; queries</h2></div>
+      <div class="card-body">
+        {% if c.pre_auth %}
+        <table class="kv">
+          <tr><td>Pre-auth requested</td><td>{{ c.pre_auth.requested_amount|inr }} <span class="small muted">{{ c.pre_auth.requested_at|datetime }}</span></td></tr>
+          <tr><td>Initial approval</td><td>{{ c.pre_auth.approved_amount|inr }} {{ m.pill(c.pre_auth.status, {'Approved': 'green', 'Denied': 'red'}.get(c.pre_auth.status, 'amber')) }}</td></tr>
+        </table>
+        {% else %}<p class="muted small">Reimbursement claim &mdash; no pre-authorisation.</p>{% endif %}
+        {% for q in c.queries %}
+        <div class="note mt"><b>Query:</b> {{ q.question }}<br><span class="small">{{ q.raised_at|datetime }}</span>
+          {% if q.response %}<div class="mt" style="margin-top:6px"><b>Response:</b> {{ q.response }} <span class="small">({{ q.responded_at|datetime }})</span></div>{% else %}<div><i>Awaiting response</i></div>{% endif %}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% if other_claims %}
+  <div class="card mt">
+    <div class="card-head"><h2>Other claims by this member</h2></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th>Claim</th><th>Admitted</th><th>ICD</th><th class="num">Claimed</th><th class="num">Settled</th><th>Status</th></tr></thead>
+      <tbody>{% for o in other_claims %}
+      <tr><td><a href="/claims/{{ o.claim_number }}">{{ o.claim_number }}</a></td><td>{{ o.admission_date|date }}</td><td class="mono">{{ o.primary_icd }}</td>
+        <td class="num">{{ o.claimed_amount|inr }}</td><td class="num">{{ o.settled_amount|inr }}</td><td>{{ m.status(o.status) }}</td></tr>
+      {% endfor %}</tbody></table></div>
+  </div>
+  {% endif %}
+</div>
+
+<div>
+  <div class="card">
+    <div class="card-head"><div><h2>Actions</h2><p>Acting as {{ user.name }} &middot; limit {{ actions.approval_limit|inr }}</p></div></div>
+    <div class="card-body">
+      {% if actions.transitions %}
+      <form method="post" action="/claims/{{ c.claim_number }}/status" class="mb">
+        <label>Move claim to</label>
+        <div class="btn-row">
+          <select name="new_status" style="flex:1">{% for t in actions.transitions %}<option>{{ t }}</option>{% endfor %}</select>
+        </div>
+        <textarea name="remarks" rows="2" class="mt" style="margin-top:8px" placeholder="Remarks (for 'Query Raised' type the question)"></textarea>
+        <button class="btn" style="margin-top:8px">Update status</button>
+      </form>
+      {% endif %}
+
+      {% if actions.can_adjudicate %}
+      <form method="post" action="/claims/{{ c.claim_number }}/adjudicate" class="mb">
+        <label>Adjudicate</label>
+        <div class="note mb">Engine result: <b>{{ preview.decision }}</b>{% if preview.eligible %} for <b>{{ preview.payable_amount|inr }}</b>{% endif %}.
+          {% if preview.eligible and preview.payable_amount > actions.approval_limit %}<br><b style="color:var(--purple)">Above your approval limit &mdash; it will be escalated.</b>{% endif %}</div>
+        <select name="manual_rejection" style="width:100%">
+          <option value="">Accept engine result</option>
+          {% for code, reason in manual_reasons.items() %}<option value="{{ code }}">Reject: {{ reason }}</option>{% endfor %}
+        </select>
+        <textarea name="remarks" rows="2" style="margin-top:8px" placeholder="Decision remarks"></textarea>
+        <button class="btn primary" style="margin-top:8px">Record decision</button>
+      </form>
+      {% endif %}
+
+      {% if actions.can_settle %}
+      <div class="mb">
+        <label>Settlement (multi-document ACID transaction)</label>
+        <p class="small muted" style="margin:0 0 8px">Updates <b>claims</b>, <b>policies</b>, <b>payments</b> and <b>audit_logs</b> together &mdash; or not at all.</p>
+        <div class="btn-row">
+          <form method="post" action="/claims/{{ c.claim_number }}/settle"><button class="btn success">Pay {{ c.approved_amount|inr }}</button></form>
+          <form method="post" action="/claims/{{ c.claim_number }}/settle"><input type="hidden" name="simulate_failure" value="1"><button class="btn danger" title="Fails after the claim and policy are updated, to prove the rollback">Simulate failure</button></form>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if not actions.transitions and not actions.can_adjudicate and not actions.can_settle %}
+      <p class="muted small">No workflow actions available for a <b>{{ c.status }}</b> claim as {{ user.role }}.
+        {% if c.status in ['Under Review', 'Escalated', 'Approved', 'Partially Approved'] %}Switch to a Claims Manager (top right) to act on it.{% endif %}</p>
+      {% endif %}
+
+      <details class="mt">
+        <summary>Register a grievance</summary>
+        <form method="post" action="/claims/{{ c.claim_number }}/grievance" class="mt">
+          <div class="field"><label>Category</label><select name="category">{% for g in grievance_categories %}<option>{{ g }}</option>{% endfor %}</select></div>
+          <div class="field"><label>Channel</label><select name="channel">{% for g in grievance_channels %}<option>{{ g }}</option>{% endfor %}</select></div>
+          <div class="field"><label>Priority</label><select name="priority"><option>Low</option><option selected>Medium</option><option>High</option></select></div>
+          <div class="field"><label>Description</label><textarea name="description" rows="2"></textarea></div>
+          <button class="btn">Register grievance</button>
+        </form>
+      </details>
+    </div>
+  </div>
+
+  {% if c.fraud %}
+  <div class="card mt">
+    <div class="card-head"><div><h2>Fraud assessment</h2><p>Review status: <b>{{ c.fraud.review_status }}</b></p></div>{{ m.risk(c.fraud.risk_level, c.fraud.score) }}</div>
+    <div class="card-body">
+      <div class="progress {{ 'red' if c.fraud.score >= 60 else ('amber' if c.fraud.score >= 30 else '') }}"><span style="width: {{ c.fraud.score }}%"></span></div>
+      {% for fl in c.fraud.flags %}
+      <div class="stat-row"><div><b>{{ fl.code|replace('_', ' ')|title }}</b><div class="small muted">{{ fl.detail }}</div></div><span class="score b-red">+{{ fl.points }}</span></div>
+      {% else %}<p class="muted small">No red flags.</p>{% endfor %}
+      {% if c.fraud.review_notes %}<div class="note mt">{{ c.fraud.review_notes }}</div>{% endif %}
+      {% if actions.can_review_fraud %}
+      <form method="post" action="/claims/{{ c.claim_number }}/fraud-review" class="mt">
+        <select name="decision" style="width:100%"><option>Cleared</option><option>Under Investigation</option><option>Confirmed Fraud</option></select>
+        <textarea name="notes" rows="2" style="margin-top:8px" placeholder="Investigation notes"></textarea>
+        <button class="btn" style="margin-top:8px">Record review</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card mt">
+    <div class="card-head"><h2>Status timeline</h2><span class="small muted">embedded <code>status_history</code></span></div>
+    <div class="card-body">
+      <ul class="timeline">
+      {% for h in c.status_history|reverse %}
+        <li style="--tl: var(--{{ h.status|status_color }})"><b>{{ h.status }}</b> <span class="when">&middot; {{ h.at|datetime }}</span>
+          <div class="small">{{ h.by_name }}</div><div class="small muted">{{ h.remarks }}</div></li>
+      {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  {% if payment %}
+  <div class="card mt">
+    <div class="card-head"><h2>Payment</h2>{{ m.pill(payment.status, 'green') }}</div>
+    <div class="card-body"><table class="kv">
+      <tr><td>Payment id</td><td class="mono">{{ payment.payment_id }}</td></tr>
+      <tr><td>Amount</td><td class="strong">{{ payment.amount|inr }}</td></tr>
+      <tr><td>Paid to</td><td>{{ payment.payee.name }} ({{ payment.payee.type }})</td></tr>
+      <tr><td>Mode / UTR</td><td>{{ payment.mode }} &middot; <span class="mono">{{ payment.utr }}</span></td></tr>
+      <tr><td>Paid on</td><td>{{ payment.paid_at|datetime }}</td></tr>
+    </table></div>
+  </div>
+  {% endif %}
+
+  {% if grievances %}
+  <div class="card mt">
+    <div class="card-head"><h2>Grievances</h2></div>
+    <div class="card-body">{% for g in grievances %}
+      <div class="stat-row"><div><b>{{ g.grievance_id }}</b> &middot; {{ g.category }}<div class="small muted">{{ g.raised_at|date }} via {{ g.channel }}{% if g.resolution %} &middot; {{ g.resolution }}{% endif %}</div></div>{{ m.pill(g.status, 'green' if g.status == 'Resolved' else 'amber') }}</div>
+    {% endfor %}</div>
+  </div>
+  {% endif %}
+
+  {% if audit_log %}
+  <div class="card mt">
+    <div class="card-head"><h2>Audit log</h2><a class="small" href="/audit?entity_id={{ c.claim_number }}">All</a></div>
+    <div class="card-body">{% for a in audit_log[:8] %}
+      <div class="stat-row small"><div><b>{{ a.action }}</b><div class="muted">{{ a.actor_name }} &middot; {{ a.timestamp|datetime }}</div></div></div>
+    {% endfor %}</div>
+  </div>
+  {% endif %}
+</div>
+</div>
+{% endblock %}

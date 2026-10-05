@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}DB Console{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Database console</h1><p>Schema, indexes, validation and transactions &mdash; the database features behind ClaimSure.</p></div>
+</div>
+
+<div class="grid g4">
+  {{ m.kpi("Engine", info.engine, "Database <b>" ~ info.database ~ "</b>", "accent") }}
+  {{ m.kpi("Collections", stats|length, (stats|sum(attribute='count'))|num ~ " documents", "purple") }}
+  {{ m.kpi("Indexes", stats|sum(attribute='indexes'), "incl. unique, compound, multikey, text, partial, TTL, 2dsphere", "teal") }}
+  {{ m.kpi("Transactions", info.transactions, "Validation: " ~ info.validation, "green" if not mock else "amber") }}
+</div>
+{% if mock %}
+<div class="alert info mt"><b>Mock mode.</b> The app is running on <code>mongomock</code>, an in-memory MongoDB. Everything works, but transactions are emulated, validation runs in the application and query plans are simulated.
+  To use a real server set <code>CLAIMSURE_MONGO_URI</code> (a free MongoDB Community Server or Atlas M0 cluster) and run <code>python main.py init-db</code>.</div>
+{% endif %}
+
+<div class="card mt">
+  <div class="card-head"><div><h2>Live demonstrations</h2><p>Use these during the review</p></div></div>
+  <div class="card-body">
+    <div class="grid g4">
+      <div><h3>1. Index benchmark</h3><p class="small muted">Compares query plans with and without indexes (documents examined, scan type).</p>
+        <a class="btn primary" href="/database/benchmark">Run benchmark</a></div>
+      <div><h3>2. Schema validation</h3><p class="small muted">Tries to insert a claim that breaks the <code>$jsonSchema</code> rules.</p>
+        <form method="post" action="/database/validate"><button class="btn primary">Insert invalid claim</button></form></div>
+      <div><h3>3. ACID transaction</h3><p class="small muted">Settles {% if demo_claim %}<a href="/claims/{{ demo_claim.claim_number }}">{{ demo_claim.claim_number }}</a> ({{ demo_claim.approved_amount|inr }}){% else %}an approved claim{% endif %} and fails midway, proving the rollback.</p>
+        {% if demo_claim %}<form method="post" action="/claims/{{ demo_claim.claim_number }}/settle"><input type="hidden" name="simulate_failure" value="1"><button class="btn danger">Run failing settlement</button></form>{% endif %}</div>
+      <div><h3>4. Query playground</h3><p class="small muted">Run your own find / aggregate (read-only).</p>
+        <a class="btn primary" href="/database/query?example=0">Open playground</a></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid g2 mt">
+  <div class="card">
+    <div class="card-head"><div><h2>Collections</h2><p>{{ 'Sizes estimated from a $sample of documents' if mock else 'From collStats' }}</p></div></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th>Collection</th><th class="num">Documents</th><th class="num">Avg doc</th><th class="num">Data size</th><th class="num">Indexes</th><th>Validator</th></tr></thead>
+      <tbody>{% for s in stats %}
+        <tr><td class="mono"><a href="/database/query?collection={{ s.name }}">{{ s.name }}</a></td><td class="num">{{ s.count|num }}</td>
+          <td class="num">{{ '%.1f'|format(s.avg_size / 1024) }} KB</td><td class="num">{{ '%.1f'|format(s.size / 1048576) }} MB</td>
+          <td class="num">{{ s.indexes }}</td><td class="nowrap">{% if s.validator %}<span class="check">&#10003;</span>{% else %}<span class="muted">-</span>{% endif %}</td></tr>
+      {% endfor %}</tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Data model</h2><p>Embed what is read together; reference what is shared or grows without bound</p></div></div>
+    <div class="card-body flush table-wrap"><table class="data">
+      <thead><tr><th>From</th><th>To</th><th>Card.</th><th>Technique</th><th>Field</th></tr></thead>
+      <tbody>{% for a, b, card, how, field in relationships %}
+        <tr><td class="mono">{{ a }}</td><td class="mono">{{ b }}</td><td>{{ card }}</td><td>{{ m.pill(how, 'purple' if 'Embedded' in how else ('teal' if 'extended' in how else 'blue')) }}</td><td class="mono small" style="word-break:break-word;max-width:220px">{{ field }}</td></tr>
+      {% endfor %}</tbody></table></div>
+  </div>
+</div>
+
+<div class="card mt">
+  <div class="card-head"><div><h2>Design patterns used</h2></div></div>
+  <div class="card-body">
+    <div class="grid g3">
+      <div class="note"><b>Embedding (one-to-few).</b> A claim embeds its bill, diagnosis list, documents, queries, status history and adjudication. One read loads the whole case file, and one atomic update changes status and history together.</div>
+      <div class="note"><b>Extended reference.</b> Claims store <code>member_id</code> / <code>hospital_id</code> <i>and</i> a <code>snapshot</code> of the names, age, city and tier at admission time. Lists render without $lookup, and history stays correct if the master record changes later.</div>
+      <div class="note"><b>Subset pattern.</b> A policy embeds just the insured members' name, relation, DOB and declared conditions &mdash; everything adjudication needs &mdash; while full KYC and contact details live in <code>members</code>.</div>
+      <div class="note"><b>Computed pattern.</b> <code>tat_days</code>, <code>settlement_tat_days</code>, <code>available_cover</code> and the fraud score are computed on write, so dashboards don't recompute them on every read.</div>
+      <div class="note"><b>Bucketed history.</b> <code>renewal_history[]</code> holds one small entry per policy year (bounded: one per year), giving premium-earned analytics without a separate collection.</div>
+      <div class="note"><b>Sequences &amp; business keys.</b> A <code>counters</code> collection with an atomic <code>$inc</code> issues claim, payment and grievance numbers. Unique indexes guarantee one payment per claim.</div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt">
+  <div class="card-head"><div><h2>Indexes</h2><p>Defined in <code>schema/indexes.json</code></p></div></div>
+  <div class="card-body">
+    {% for coll, rows in catalog.items() %}
+    <details {{ 'open' if coll == 'claims' }} class="mb">
+      <summary class="mono">{{ coll }} <span class="muted small">({{ rows|length }} indexes)</span></summary>
+      <table class="data mt"><thead><tr><th>Name</th><th>Keys</th><th>Type</th><th>Purpose</th></tr></thead><tbody>
+        {% for r in rows %}<tr><td class="mono small">{{ r.name }}</td><td class="mono small">{{ r.keys }}</td>
+          <td>{{ m.pill(r.kind, {'Unique': 'purple', 'Compound': 'blue', 'Multikey': 'teal', 'Text': 'amber', 'Partial': 'orange', 'TTL': 'red', 'Geospatial': 'green', 'Sparse': 'cyan'}.get(r.kind, 'slate')) }}</td>
+          <td class="small">{{ r.purpose }}{% if r.partial %}<div class="mono muted">partialFilterExpression: {{ r.partial|pretty }}</div>{% endif %}{% if r.ttl %}<div class="mono muted">expireAfterSeconds: {{ r.ttl }}</div>{% endif %}</td></tr>{% endfor %}
+      </tbody></table>
+    </details>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card mt">
+  <div class="card-head"><div><h2>$jsonSchema validators</h2><p>Defined in <code>schema/validators.json</code> &mdash; enforced by MongoDB (real mode) and by the app before every insert</p></div></div>
+  <div class="card-body">
+    {% for name, schema in validators.items() %}
+    <details class="mb"><summary class="mono">{{ name }} <span class="muted small">({{ schema.required|length }} required fields)</span></summary><pre class="code mt">{{ schema|pretty }}</pre></details>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card mt">
+  <div class="card-head"><div><h2>Reset data</h2><p>Drops every collection and reloads the data set from <code>data/*.json</code> (Admin only)</p></div>
+    <form method="post" action="/database/reseed" onsubmit="return confirm('Drop and reload all collections?')"><button class="btn danger">Reset database</button></form></div>
+</div>
+{% endblock %}

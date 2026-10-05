@@ -1,47 +1,12 @@
 [
-  {
-    "insurer_id": "INS001",
-    "name": "Star Health Insurance",
-    "license_no": "IRDAI-HI-2001",
-    "contact": "+91-1800-123-4561",
-    "support_email": "support@starhealthinsurance.in",
-    "rating": 4.1,
-    "headquarters": "Chennai"
-  },
-  {
-    "insurer_id": "INS002",
-    "name": "ICICI Lombard",
-    "license_no": "IRDAI-HI-2002",
-    "contact": "+91-1800-123-4562",
-    "support_email": "support@icicilombard.in",
-    "rating": 4.2,
-    "headquarters": "Mumbai"
-  },
-  {
-    "insurer_id": "INS003",
-    "name": "Max Bupa",
-    "license_no": "IRDAI-HI-2003",
-    "contact": "+91-1800-123-4563",
-    "support_email": "support@maxbupa.in",
-    "rating": 4.3,
-    "headquarters": "Delhi"
-  },
-  {
-    "insurer_id": "INS004",
-    "name": "HDFC Ergo",
-    "license_no": "IRDAI-HI-2004",
-    "contact": "+91-1800-123-4564",
-    "support_email": "support@hdfcergo.in",
-    "rating": 4.4,
-    "headquarters": "Mumbai"
-  },
-  {
-    "insurer_id": "INS005",
-    "name": "New India Assurance",
-    "license_no": "IRDAI-HI-2005",
-    "contact": "+91-1800-123-4565",
-    "support_email": "support@newindiaassurance.in",
-    "rating": 4,
-    "headquarters": "Mumbai"
-  }
+{"insurer_id": "INS01", "name": "Suraksha General Insurance Co. Ltd.", "code": "SGI", "brand": "Suraksha", "type": "General Insurer (Private)", "irdai_reg_no": "IRDAI/GEN/107", "headquarters": {"city": "Mumbai", "state": "Maharashtra"}, "contact": {"toll_free": "1800-221-6234", "claims_email": "claims@suraksha.example", "website": "www.suraksha.example"}, "established_year": 2001, "solvency_ratio": 2.08, "customer_rating": 4.0, "tpa_ids": ["TPA01", "TPA03"], "claims_handling": "Third Party Administrator"},
+{"insurer_id": "INS02", "name": "Arogya Shield Health Insurance Ltd.", "code": "ASH", "brand": "Arogya Shield", "type": "Standalone Health Insurer", "irdai_reg_no": "IRDAI/HLT/114", "headquarters": {"city": "Chennai", "state": "Tamil Nadu"}, "contact": {"toll_free": "1800-980-2681", "claims_email": "claims@arogyashield.example", "website": "www.arogyashield.example"}, "established_year": 2006, "solvency_ratio": 2.48, "customer_rating": 4.5, "tpa_ids": [], "claims_handling": "In-house"},
+{"insurer_id": "INS03", "name": "Bharat Mutual Assurance Co. Ltd.", "code": "BMA", "brand": "Bharat", "type": "General Insurer (Public Sector)", "irdai_reg_no": "IRDAI/GEN/121", "headquarters": {"city": "New Delhi", "state": "Delhi"}, "contact": {"toll_free": "1800-736-7891", "claims_email": "claims@bharat.example", "website": "www.bharat.example"}, "established_year": 1956, "solvency_ratio": 2.37, "customer_rating": 4.1, "tpa_ids": ["TPA03", "TPA06", "TPA04"], "claims_handling": "Third Party Administrator"},
+{"insurer_id": "INS04", "name": "Kavach Health Insurance Ltd.", "code": "KHI", "brand": "Kavach", "type": "Standalone Health Insurer", "irdai_reg_no": "IRDAI/HLT/128", "headquarters": {"city": "Bengaluru", "state": "Karnataka"}, "contact": {"toll_free": "1800-848-9042", "claims_email": "claims@kavach.example", "website": "www.kavach.example"}, "established_year": 2012, "solvency_ratio": 2.34, "customer_rating": 4.1, "tpa_ids": [], "claims_handling": "In-house"},
+{"insurer_id": "INS05", "name": "Navjeevan General Insurance Co. Ltd.", "code": "NGI", "brand": "Navjeevan", "type": "General Insurer (Private)", "irdai_reg_no": "IRDAI/GEN/135", "headquarters": {"city": "Pune", "state": "Maharashtra"}, "contact": {"toll_free": "1800-345-1041", "claims_email": "claims@navjeevan.example", "website": "www.navjeevan.example"}, "established_year": 2008, "solvency_ratio": 2.19, "customer_rating": 3.5, "tpa_ids": ["TPA02"], "claims_handling": "Third Party Administrator"},
+{"insurer_id": "INS06", "name": "Sanjeevani Health Insurance Ltd.", "code": "SHI", "brand": "Sanjeevani", "type": "Standalone Health Insurer", "irdai_reg_no": "IRDAI/HLT/142", "headquarters": {"city": "Hyderabad", "state": "Telangana"}, "contact": {"toll_free": "1800-936-2606", "claims_email": "claims@sanjeevani.example", "website": "www.sanjeevani.example"}, "established_year": 2015, "solvency_ratio": 2.02, "customer_rating": 4.4, "tpa_ids": [], "claims_handling": "In-house"},
+{"insurer_id": "INS07", "name": "Prithvi General Insurance Co. Ltd.", "code": "PGI", "brand": "Prithvi", "type": "General Insurer (Private)", "irdai_reg_no": "IRDAI/GEN/149", "headquarters": {"city": "Gurugram", "state": "Haryana"}, "contact": {"toll_free": "1800-801-9032", "claims_email": "claims@prithvi.example", "website": "www.prithvi.example"}, "established_year": 2007, "solvency_ratio": 2.26, "customer_rating": 3.7, "tpa_ids": ["TPA01", "TPA05"], "claims_handling": "Third Party Administrator"},
+{"insurer_id": "INS08", "name": "Raksha National Insurance Co. Ltd.", "code": "RNI", "brand": "Raksha", "type": "General Insurer (Public Sector)", "irdai_reg_no": "IRDAI/GEN/156", "headquarters": {"city": "Kolkata", "state": "West Bengal"}, "contact": {"toll_free": "1800-357-6696", "claims_email": "claims@raksha.example", "website": "www.raksha.example"}, "established_year": 1947, "solvency_ratio": 2.58, "customer_rating": 4.5, "tpa_ids": ["TPA06", "TPA04"], "claims_handling": "Third Party Administrator"},
+{"insurer_id": "INS09", "name": "Unity Care General Insurance Ltd.", "code": "UCG", "brand": "Unity Care", "type": "General Insurer (Private)", "irdai_reg_no": "IRDAI/GEN/163", "headquarters": {"city": "Ahmedabad", "state": "Gujarat"}, "contact": {"toll_free": "1800-924-7166", "claims_email": "claims@unitycare.example", "website": "www.unitycare.example"}, "established_year": 2010, "solvency_ratio": 2.6, "customer_rating": 4.0, "tpa_ids": ["TPA05", "TPA02"], "claims_handling": "Third Party Administrator"},
+{"insurer_id": "INS10", "name": "Medisure Health Insurance Ltd.", "code": "MHI", "brand": "Medisure", "type": "Standalone Health Insurer", "irdai_reg_no": "IRDAI/HLT/170", "headquarters": {"city": "Kochi", "state": "Kerala"}, "contact": {"toll_free": "1800-178-6577", "claims_email": "claims@medisure.example", "website": "www.medisure.example"}, "established_year": 2018, "solvency_ratio": 1.64, "customer_rating": 4.0, "tpa_ids": [], "claims_handling": "In-house"}
 ]

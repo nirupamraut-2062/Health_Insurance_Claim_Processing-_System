@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Query Playground{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Query playground</h1><p>Run read-only MongoDB queries against the live data. Use Extended JSON for dates: <code>{"$date": "2026-01-01T00:00:00Z"}</code>.</p></div>
+</div>
+<div class="split">
+  <div class="card">
+    <form method="post" action="/database/query" class="card-body">
+      <div class="form-grid">
+        <div class="field"><label>Collection</label><select name="collection">{% for c in collections %}<option {{ 'selected' if (form.collection or request.query_params.get('collection')) == c }}>{{ c }}</option>{% endfor %}</select></div>
+        <div class="field"><label>Operation</label><select name="operation" id="op"><option value="find" {{ 'selected' if form.operation != 'aggregate' }}>find</option><option value="aggregate" {{ 'selected' if form.operation == 'aggregate' }}>aggregate</option></select></div>
+        <div class="field"><label>Limit</label><input type="number" name="limit" value="{{ form.limit or 20 }}" min="1" max="100"></div>
+        <div class="field"><label>&nbsp;</label><button class="btn primary" style="width:100%;justify-content:center">&#9654; Run</button></div>
+        <div class="full field"><label id="qlabel">{{ 'Pipeline (JSON array of stages)' if form.operation == 'aggregate' else 'Filter' }}</label>
+          <textarea name="query" rows="6" class="mono" spellcheck="false">{{ form.query or '{"status": "Under Review"}' }}</textarea></div>
+        <div class="wide field findonly"><label>Projection</label><textarea name="projection" rows="2" class="mono" spellcheck="false">{{ form.projection or '' }}</textarea></div>
+        <div class="wide field findonly"><label>Sort</label><textarea name="sort" rows="2" class="mono" spellcheck="false">{{ form.sort or '' }}</textarea></div>
+      </div>
+    </form>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>Examples</h2></div>
+    <div class="card-body">{% for ex in examples %}
+      <div class="stat-row"><a href="/database/query?example={{ loop.index0 }}">{{ ex[0] }}</a><span class="tag">{{ ex[2] }}</span></div>
+    {% endfor %}</div>
+  </div>
+</div>
+
+{% if error %}<div class="alert error mt"><b>Query failed:</b> <span class="mono">{{ error }}</span></div>{% endif %}
+{% if result is not none %}
+<div class="card mt">
+  <div class="card-head"><div><h2>Result</h2><p>{{ result|length }} document(s) shown{% if count is not none and form.operation != 'aggregate' %} of {{ count|num }} matching{% endif %} &middot; {{ elapsed }} ms</p></div></div>
+  <div class="card-body"><pre class="code" style="max-height:600px">{{ result|pretty }}</pre></div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+const op = document.getElementById("op");
+function sync() {
+  document.querySelectorAll(".findonly").forEach(e => e.classList.toggle("hidden", op.value === "aggregate"));
+  document.getElementById("qlabel").textContent = op.value === "aggregate" ? "Pipeline (JSON array of stages)" : "Filter";
+}
+op.addEventListener("change", sync); sync();
+</script>
+{% endblock %}

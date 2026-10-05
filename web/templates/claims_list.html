@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Claims{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if f.assigned == 'me' %}My work queue{% else %}Claims{% endif %}</h1>
+    <p>{{ pg.total|num }} claims match{% if notes %} &middot; {{ notes|join(', ') }}{% endif %}</p>
+  </div>
+  <div class="btn-row">
+    <a class="btn" href="{{ export_url }}">&#8681; Export CSV</a>
+    <a class="btn primary" href="/claims/new">&#10010; Intimate claim</a>
+  </div>
+</div>
+
+<div class="chips mb">
+  {% set st = f.status or '' %}
+  <a class="chip {{ 'on' if not st }}" href="/claims">All</a>
+  <a class="chip {{ 'on' if st == 'open' }}" href="/claims?status=open">Open</a>
+  <a class="chip {{ 'on' if st == 'awaiting' }}" href="/claims?status=awaiting">Awaiting payment</a>
+  {% for s in statuses %}<a class="chip {{ 'on' if st == s }}" href="/claims?status={{ s|urlencode }}">{{ s }}</a>{% endfor %}
+</div>
+
+<div class="card">
+  <form class="filters" method="get">
+    <input type="hidden" name="status" value="{{ f.status or '' }}">
+    {% if f.assigned %}<input type="hidden" name="assigned" value="{{ f.assigned }}">{% endif %}
+    <div class="f"><label>Search</label><input name="q" value="{{ f.q or '' }}" placeholder="Claim no, patient, hospital, ICD" style="width:230px"></div>
+    <div class="f"><label>Type</label><select name="type"><option value="">All</option>{% for t in ['Cashless', 'Reimbursement'] %}<option {{ 'selected' if f.type == t }}>{{ t }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Insurer</label><select name="insurer"><option value="">All insurers</option>{% for i in insurers %}<option value="{{ i.insurer_id }}" {{ 'selected' if f.insurer == i.insurer_id }}>{{ i.name }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Fraud risk</label><select name="risk"><option value="">Any</option>{% for r in ['High', 'Medium', 'Low'] %}<option {{ 'selected' if f.risk == r }}>{{ r }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Admitted from</label><input type="date" name="from" value="{{ f.get('from', '') }}"></div>
+    <div class="f"><label>to</label><input type="date" name="to" value="{{ f.to or '' }}"></div>
+    <div class="f"><label>Claimed &ge; &#8377;</label><input type="number" name="min" value="{{ f.min or '' }}" style="width:110px"></div>
+    <div class="f"><label>Sort</label><select name="sort">
+      {% for k, label in [('newest', 'Newest first'), ('oldest', 'Oldest first'), ('amount', 'Highest amount'), ('risk', 'Highest fraud risk'), ('admission', 'Admission date')] %}
+      <option value="{{ k }}" {{ 'selected' if sort == k }}>{{ label }}</option>{% endfor %}</select></div>
+    <div class="f"><button class="btn primary" type="submit">Apply</button></div>
+    <div class="f"><a class="btn" href="/claims">Reset</a></div>
+  </form>
+  {{ m.claims_table(rows, staff=staff) }}
+  {{ m.pager(pg) }}
+</div>
+
+<details class="mt">
+  <summary>MongoDB query used for this page</summary>
+  <pre class="code mt">db.claims.find({{ query|pretty }})
+  .sort({{ {'newest': '{intimation_date: -1}', 'oldest': '{intimation_date: 1}', 'amount': '{claimed_amount: -1}', 'risk': '{"fraud.score": -1}', 'admission': '{admission_date: -1}'}[sort] if sort in ['newest','oldest','amount','risk','admission'] else '{intimation_date: -1}' }})
+  .skip({{ (pg.page - 1) * 25 }}).limit(25)</pre>
+</details>
+{% endblock %}

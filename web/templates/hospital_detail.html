@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}{{ h.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/hospitals">Hospitals</a> / {{ h.hospital_id }}</div>
+    <h1>{{ h.name }} {% if h.watchlisted %}{{ m.pill('Watch-listed', 'red') }}{% endif %}</h1>
+    <p>{{ h.type }} &middot; {{ h.ownership }} &middot; {{ h.address.line1 }}, {{ h.address.city }}, {{ h.address.state }} {{ h.address.pincode }}</p>
+  </div>
+</div>
+{% if h.watchlisted %}<div class="alert warning"><b>Under investigation:</b> {{ h.watchlist_reason }}. Claims from this hospital score +20 in the fraud engine.</div>{% endif %}
+<div class="grid g4">
+  {{ m.kpi("Claims", stats.claims or 0, (stats.rejected or 0) ~ " rejected", "accent") }}
+  {{ m.kpi("Paid", (stats.paid or 0)|inr_short, "of " ~ ((stats.claimed or 0)|inr_short) ~ " claimed", "green") }}
+  {{ m.kpi("Average stay", ('%.1f'|format(stats.avg_los or 0)) ~ " days", "", "purple") }}
+  {{ m.kpi("Fraud-flagged claims", stats.flagged or 0, "score 30 or more", "red") }}
+</div>
+<div class="split mt">
+<div>
+  <div class="card">
+    <div class="card-head"><h2>Recent claims</h2><a class="small" href="/claims?hospital={{ h.hospital_id }}">All claims</a></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th>Claim</th><th>Patient</th><th>Admitted</th><th>Diagnosis</th><th class="num">Claimed</th><th>Status</th><th>Risk</th></tr></thead>
+      <tbody>{% for c in claims %}
+      <tr><td><a href="/claims/{{ c.claim_number }}">{{ c.claim_number }}</a></td><td>{{ c.snapshot.member_name }}</td><td>{{ c.admission_date|date }}</td>
+        <td>{{ c.diagnosis[0].description|truncate(28) }}</td><td class="num">{{ c.claimed_amount|inr }}</td><td>{{ m.status(c.status) }}</td><td>{{ m.risk(c.fraud.risk_level) }}</td></tr>
+      {% else %}<tr><td colspan="7" class="empty">No claims yet.</td></tr>{% endfor %}</tbody></table></div>
+  </div>
+  <div class="card mt">
+    <div class="card-head"><h2>Doctors ({{ doctors|length }})</h2></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th>Doctor</th><th>Speciality</th><th>Registration</th><th class="num">Experience</th><th class="num">Fee</th></tr></thead>
+      <tbody>{% for d in doctors %}
+      <tr><td>{{ d.name }}<div class="sub">{{ d.qualification }}</div></td><td>{{ d.specialization }}</td><td class="mono">{{ d.registration_no }}</td>
+        <td class="num">{{ d.experience_years }} yrs</td><td class="num">{{ d.consultation_fee|inr }}</td></tr>
+      {% endfor %}</tbody></table></div>
+  </div>
+</div>
+<div>
+  <div class="card">
+    <div class="card-head"><h2>Facility</h2></div>
+    <div class="card-body"><table class="kv">
+      <tr><td>ROHINI id</td><td class="mono">{{ h.rohini_id }}</td></tr>
+      <tr><td>Accreditation</td><td>{{ h.accreditation }}</td></tr>
+      <tr><td>Beds / ICU</td><td>{{ h.beds }} / {{ h.icu_beds }}</td></tr>
+      <tr><td>City tier</td><td>Tier {{ h.city_tier }} &middot; tariff factor {{ h.tariff_factor }}</td></tr>
+      <tr><td>Established</td><td>{{ h.established_year }}</td></tr>
+      <tr><td>24x7 emergency</td><td>{{ 'Yes' if h.contact.emergency_24x7 else 'No' }}</td></tr>
+      <tr><td>Contact</td><td>{{ h.contact.phone }}<div class="small muted">{{ h.contact.email }}</div></td></tr>
+      <tr><td>Location</td><td class="mono small">{{ h.location.coordinates[1] }}, {{ h.location.coordinates[0] }}</td></tr>
+      <tr><td>Specialities</td><td>{% for s in h.specialties %}<span class="tag">{{ s }}</span>{% endfor %}</td></tr>
+    </table></div>
+  </div>
+  <div class="card mt">
+    <div class="card-head"><div><h2>Cashless network</h2><p>Empanelled since {{ h.network.empanelled_since|date }}</p></div></div>
+    <div class="card-body">{% for i in h.network.insurer_ids %}<div class="stat-row small"><span>{{ insurers[i] }}</span><span class="muted">{{ i }}</span></div>{% endfor %}</div>
+  </div>
+  <div class="card mt">
+    <div class="card-head"><div><h2>Nearby hospitals (60 km)</h2><p>{{ geo_mode }}</p></div></div>
+    <div class="card-body">{% for n in nearby %}
+      <div class="stat-row small"><a href="/hospitals/{{ n.hospital_id }}">{{ n.name }}</a><span class="muted">{{ '%.1f'|format(n.km) }} km</span></div>
+    {% else %}<p class="muted small">No other hospitals within 60 km.</p>{% endfor %}</div>
+  </div>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}{{ mem.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/members">Members</a> / {{ mem.member_id }}</div>
+    <h1>{{ mem.name }}</h1>
+    <p>{{ age }} years &middot; {{ mem.gender }} &middot; {{ mem.address.city }}, {{ mem.address.state }}</p>
+  </div>
+</div>
+<div class="grid g4">
+  {{ m.kpi("Policies", policies|length, (policies|selectattr('status', 'equalto', 'Active')|list|length) ~ " active", "accent") }}
+  {{ m.kpi("Claims", claims|length, (claims|selectattr('status', 'equalto', 'Rejected')|list|length) ~ " rejected", "purple") }}
+  {{ m.kpi("Total claimed", (claims|sum(attribute='claimed_amount'))|inr, "", "amber") }}
+  {{ m.kpi("Total paid", (claims|sum(attribute='settled_amount'))|inr, "", "green") }}
+</div>
+<div class="split mt">
+<div>
+  <div class="card">
+    <div class="card-head"><h2>Claims</h2></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th>Claim</th><th>Admitted</th><th>Hospital</th><th>Diagnosis</th><th class="num">Claimed</th><th class="num">Paid</th><th>Status</th></tr></thead>
+      <tbody>{% for c in claims %}
+        <tr><td><a href="/claims/{{ c.claim_number }}">{{ c.claim_number }}</a></td><td>{{ c.admission_date|date }}</td><td>{{ c.snapshot.hospital_name }}</td>
+          <td>{{ c.diagnosis[0].description|truncate(28) }}</td><td class="num">{{ c.claimed_amount|inr }}</td><td class="num">{{ c.settled_amount|inr }}</td><td>{{ m.status(c.status) }}</td></tr>
+      {% else %}<tr><td colspan="7" class="empty">No claims.</td></tr>{% endfor %}</tbody></table></div>
+  </div>
+  <div class="card mt">
+    <div class="card-head"><div><h2>Policies covering this member</h2><p>Found with the multikey index on <code>insured_members.member_id</code></p></div></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th>Policy</th><th>Type</th><th class="num">Cover</th><th class="num">Available</th><th>Term</th><th>Status</th></tr></thead>
+      <tbody>{% for p in policies %}
+        <tr><td><a class="mono" href="/policies/{{ p.policy_number }}">{{ p.policy_number }}</a></td><td>{{ p.policy_type }}</td><td class="num">{{ p.total_cover|inr }}</td>
+          <td class="num">{{ p.available_cover|inr }}</td><td>{{ p.start_date|date }} &ndash; {{ p.end_date|date }}</td>
+          <td>{{ m.pill(p.status, 'green' if p.status == 'Active' else 'gray') }}</td></tr>
+      {% endfor %}</tbody></table></div>
+  </div>
+</div>
+<div>
+  <div class="card">
+    <div class="card-head"><h2>Profile</h2></div>
+    <div class="card-body"><table class="kv">
+      <tr><td>Member id</td><td class="mono">{{ mem.member_id }}</td></tr>
+      <tr><td>Date of birth</td><td>{{ mem.dob|date }}</td></tr>
+      <tr><td>Mobile</td><td>{{ mem.contact.phone }}</td></tr>
+      <tr><td>Email</td><td>{{ mem.contact.email or '-' }}</td></tr>
+      <tr><td>Address</td><td>{{ mem.address.line1 }}, {{ mem.address.city }} {{ mem.address.pincode }}</td></tr>
+      <tr><td>KYC</td><td>Aadhaar {{ mem.kyc.aadhaar_masked }}{% if mem.kyc.pan_masked %}<br>PAN {{ mem.kyc.pan_masked }}{% endif %}</td></tr>
+      <tr><td>Blood group</td><td>{{ mem.blood_group }}</td></tr>
+      <tr><td>Height / weight</td><td>{{ mem.height_cm }} cm / {{ mem.weight_kg }} kg &middot; BMI {{ bmi }}</td></tr>
+      <tr><td>Lifestyle</td><td>{{ 'Smoker' if mem.lifestyle.smoker else 'Non-smoker' }} &middot; alcohol: {{ mem.lifestyle.alcohol }}</td></tr>
+      <tr><td>Pre-existing</td><td>{% for c in mem.pre_existing_conditions %}<span class="tag">{{ c }}</span>{% else %}None{% endfor %}</td></tr>
+      <tr><td>Occupation</td><td>{{ mem.occupation }}{% if mem.employer %}<div class="small muted">{{ mem.employer.name }} ({{ mem.employer.employee_id }})</div>{% endif %}</td></tr>
+      <tr><td>Registered</td><td>{{ mem.registered_on|date }}</td></tr>
+    </table></div>
+  </div>
+  {% if family %}
+  <div class="card mt">
+    <div class="card-head"><h2>Family ({{ mem.family_id }})</h2></div>
+    <div class="card-body">{% for f in family %}
+      <div class="stat-row"><a href="/members/{{ f.member_id }}">{{ f.name }}</a><span class="muted small">{{ age_on(f.dob) }} yrs &middot; {{ f.gender }}</span></div>
+    {% endfor %}</div>
+  </div>
+  {% endif %}
+</div>
+</div>
+{% endblock %}

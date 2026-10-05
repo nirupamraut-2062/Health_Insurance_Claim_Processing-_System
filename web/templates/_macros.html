@@ -1,0 +1,61 @@
+{% macro status(s) -%}
+<span class="badge b-{{ s|status_color }}">{{ s }}</span>
+{%- endmacro %}
+
+{% macro risk(level, score=None) -%}
+{% set c = {'High': 'red', 'Medium': 'amber', 'Low': 'green'}.get(level, 'gray') %}
+<span class="badge b-{{ c }}">{{ level or '-' }}{% if score %} &middot; {{ score }}{% endif %}</span>
+{%- endmacro %}
+
+{% macro pill(text, color='slate') -%}
+<span class="badge plain b-{{ color }}">{{ text }}</span>
+{%- endmacro %}
+
+{% macro kpi(label, value, sub='', color='accent') -%}
+<div class="card kpi {{ color }}">
+  <div class="label">{{ label }}</div>
+  <div class="value">{{ value }}</div>
+  {% if sub %}<div class="sub">{{ sub|safe }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro pager(pg) -%}
+<div class="pager">
+  <span>Showing {{ pg.start|num }}&ndash;{{ pg.end|num }} of {{ pg.total|num }}</span>
+  {% if pg.pages > 1 %}
+  <div class="btn-row">
+    {% if pg.page > 1 %}<a class="btn sm" href="{{ pg.url(1) }}">&laquo;</a><a class="btn sm" href="{{ pg.url(pg.page - 1) }}">&lsaquo; Prev</a>{% endif %}
+    <span>Page {{ pg.page }} of {{ pg.pages }}</span>
+    {% if pg.page < pg.pages %}<a class="btn sm" href="{{ pg.url(pg.page + 1) }}">Next &rsaquo;</a><a class="btn sm" href="{{ pg.url(pg.pages) }}">&raquo;</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{%- endmacro %}
+
+{% macro claims_table(rows, show_risk=True, show_hospital=True, staff=None, compact=False) -%}
+<div class="table-wrap">
+<table class="data">
+  <thead><tr>
+    <th>Claim</th><th>Patient</th>{% if show_hospital %}<th>Hospital</th>{% endif %}<th>Diagnosis</th>
+    <th class="num">Claimed</th>{% if not compact %}<th class="num">Approved</th>{% endif %}<th>Status</th>{% if show_risk %}<th>Risk</th>{% endif %}
+  </tr></thead>
+  <tbody>
+  {% for c in rows %}
+  <tr>
+    <td class="nowrap"><a href="/claims/{{ c.claim_number }}" class="strong">{{ c.claim_number }}</a>
+      <div class="sub">{{ c.claim_type }} &middot; {{ c.intimation_date|date }}</div></td>
+    <td>{{ c.snapshot.member_name }}<div class="sub">{{ c.snapshot.member_age }} yrs &middot; {{ c.snapshot.relation }}</div></td>
+    {% if show_hospital %}<td>{{ c.snapshot.hospital_name }}<div class="sub">{{ c.snapshot.hospital_city }}{% if not c.snapshot.network_hospital %} &middot; non-network{% endif %}</div></td>{% endif %}
+    <td><span class="mono">{{ c.primary_icd }}</span><div class="sub">{{ (c.diagnosis[0].description if c.diagnosis else '')|truncate(34 if not compact else 24) }}</div></td>
+    <td class="num">{{ c.claimed_amount|inr }}</td>
+    {% if not compact %}<td class="num">{{ c.approved_amount|inr if c.approved_amount else '-' }}</td>{% endif %}
+    <td>{{ status(c.status) }}{% if staff and c.assigned_to %}<div class="sub">{{ staff[c.assigned_to].name if c.assigned_to in staff else c.assigned_to }}</div>{% endif %}</td>
+    {% if show_risk %}<td>{% if c.fraud %}{{ risk(c.fraud.risk_level, c.fraud.score) }}{% endif %}</td>{% endif %}
+  </tr>
+  {% else %}
+  <tr><td colspan="8" class="empty">No claims match.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{%- endmacro %}
