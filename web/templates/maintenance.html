@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Maintenance{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Database maintenance</h1><p>Batch jobs, schema versioning, views, a materialised view, and backup and restore.</p></div>
+</div>
+
+<div class="grid g2">
+  <div class="card">
+    <div class="card-head"><div><h2>Policy renewal batch</h2><p>Nightly job, also run at start-up: renews every active policy whose term has ended, in <b>one bulk write</b></p></div>
+      <form method="post" action="/database/maintenance/renew"><button class="btn primary" {% if 'db.maintenance' not in perms %}disabled title="Head Admin only"{% endif %}>Run now</button></form></div>
+    <div class="card-body"><table class="kv">
+      <tr><td>Policies due right now</td><td><b>{{ due }}</b></td></tr>
+      <tr><td>Last renewal</td><td>{{ last_renewal.summary + ' (' + (last_renewal.timestamp|datetime) + ')' if last_renewal else '-' }}</td></tr>
+      <tr><td>Safety</td><td>Each update is guarded by the old <code>end_date</code>, so running the job twice cannot renew twice (idempotent)</td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Schema versioning</h2><p>Documents carry <code>schema_version</code>; code handles every version and a migration upgrades them</p></div>
+      <form method="post" action="/database/maintenance/migrate" onsubmit="return confirm('Upgrade all v1 claims to v{{ current }}?')"><button class="btn primary" {% if 'db.maintenance' not in perms %}disabled title="Head Admin only"{% endif %}>Migrate to v{{ current }}</button></form></div>
+    <div class="card-body"><table class="kv">
+      {% for v, n in versions.items() %}<tr><td>Claims on schema v{{ v }}</td><td><b>{{ '{:,}'.format(n) }}</b></td></tr>{% endfor %}
+      {% for v, d in migrations.items() %}<tr><td>v{{ v - 1 }} &rarr; v{{ v }}</td><td>{{ d }}</td></tr>{% endfor %}
+      <tr><td>Method</td><td><code>update_many({schema_version: {$exists: false}}, {$set: {schema_version: 2, version: 0}})</code>; it is idempotent and can run while the app is live</td></tr>
+    </table>{% if mock %}<p class="small muted">In mock mode this takes about 25 seconds (mongomock is slow at bulk updates); on MongoDB it takes well under a second.</p>{% endif %}</div>
+  </div>
+</div>
+
+<div class="card mt">
+  <div class="card-head"><div><h2>Views</h2><p>Read-only, computed on read from a pipeline; they store no data</p></div>
+    <form method="post" action="/database/maintenance/views"><button class="btn primary" {{ 'disabled' if mock or 'db.maintenance' not in perms }}>Create / refresh views</button></form></div>
+  <div class="card-body">
+    {% if mock %}<div class="alert warning">Views need a real MongoDB server (mongomock does not support them).</div>{% endif %}
+    <div class="grid g2">
+    {% for v in views %}
+      <div>
+        <h3>{{ v.name }} <span class="badge b-{{ 'green' if v.exists else 'gray' }}">{{ 'exists' if v.exists else 'not created' }}</span></h3>
+        <p class="small muted">{{ v.purpose }} &middot; on <code>{{ v.on }}</code></p>
+        <details><summary>Pipeline</summary><pre class="code mt">{{ v.pipeline|pretty }}</pre></details>
+        {% if v.sample %}<details open class="mt"><summary>Sample rows</summary><pre class="code mt">{{ v.sample|pretty }}</pre></details>{% endif %}
+      </div>
+    {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="grid g2 mt">
+  <div class="card">
+    <div class="card-head"><div><h2>Materialised view</h2><p><code>mv_insurer_monthly</code>: monthly totals per insurer, stored and refreshed on demand with <code>$merge</code></p></div>
+      <form method="post" action="/database/maintenance/mv"><button class="btn primary" {% if 'db.maintenance' not in perms %}disabled title="Head Admin only"{% endif %}>Refresh</button></form></div>
+    <div class="card-body">
+      <table class="kv">
+        <tr><td>Rows</td><td><b>{{ mv_rows }}</b></td></tr>
+        <tr><td>Last refreshed</td><td>{{ mv.refreshed_at|datetime if mv else 'never' }}</td></tr>
+        <tr><td>View vs materialised</td><td>A view recomputes on every read; a materialised view trades freshness for speed</td></tr>
+      </table>
+      <details class="mt"><summary>Pipeline</summary><pre class="code mt">{{ mv_pipeline|pretty }}
++ { $merge: { into: "mv_insurer_monthly", on: "_id", whenMatched: "replace", whenNotMatched: "insert" } }</pre></details>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Backup and restore</h2><p>Logical backup of every collection to Extended JSON, with a manifest</p></div>
+      <form method="post" action="/database/maintenance/backup"><button class="btn primary" {% if 'db.maintenance' not in perms %}disabled title="Head Admin only"{% endif %}>Back up now</button></form></div>
+    <div class="card-body flush">
+      <table class="data"><thead><tr><th>Backup</th><th class="num">Documents</th><th></th></tr></thead><tbody>
+      {% for b in backups %}
+        <tr><td class="mono">{{ b.name }}<div class="sub">{{ b.created_at }}</div></td><td class="num">{{ '{:,}'.format(b.documents) }}</td>
+          <td class="right"><form method="post" action="/database/maintenance/restore" onsubmit="return confirm('Drop all collections and restore {{ b.name }}?')"><input type="hidden" name="name" value="{{ b.name }}"><button class="btn sm danger" {% if 'db.reset' not in perms %}disabled title="Head Admin only"{% endif %}>Restore</button></form></td></tr>
+      {% else %}<tr><td colspan="3" class="empty">No backups yet.</td></tr>{% endfor %}
+      </tbody></table>
+      <p class="small muted" style="padding:10px 18px">On a server, <code>mongodump --uri ... --out backups/</code> and <code>mongorestore</code> do the same in BSON; Atlas paid tiers add continuous point-in-time restore from the oplog. Running these jobs and restoring a backup need the Head Admin.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

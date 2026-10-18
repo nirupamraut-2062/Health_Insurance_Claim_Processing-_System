@@ -1,6 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from conftest import sign_in
+
 from claimsure import analytics, indexes
 
 
@@ -28,6 +30,7 @@ def test_benchmark_uses_indexes(db):
 def client(db):
     from web.app import app
     with TestClient(app) as c:
+        sign_in(c, "USR001")  # Head Admin: every page and action is allowed
         yield c
 
 

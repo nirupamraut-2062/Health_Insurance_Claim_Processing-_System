@@ -38,8 +38,10 @@ title('CREATE: an invalid document is rejected by the $jsonSchema validator');
 try {
   db.claims.insertOne({ claim_number: 'BAD-1', status: 'Paid', claimed_amount: -10 });
 } catch (e) {
-  print(`Rejected: ${e.codeName} (code ${e.code})`);
-  printjson(e.errInfo?.details?.schemaRulesNotSatisfied?.slice(0, 2));
+  print(`Rejected: DocumentValidationFailure (code ${e.code})`);
+  const rules = (e.errInfo && e.errInfo.details && e.errInfo.details.schemaRulesNotSatisfied) || [];
+  rules.forEach(r => (r.propertiesNotSatisfied || r.missingProperties || []).forEach(p =>
+    print(`  - ${typeof p === 'string' ? p + ': required field missing' : p.propertyName + ': ' + p.details.map(d => d.reason).join(', ')}`)));
 }
 
 // ---------------------------------------------------------------- READ

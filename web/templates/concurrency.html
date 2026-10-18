@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Concurrency Lab{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Concurrency control lab</h1>
+    <p>Two adjusters pay two claims against the <b>same policy</b> at the same instant. Starting cover {{ amounts.START|inr }},
+      each payment {{ amounts.AMOUNT|inr }}, so the correct result is <b>{{ amounts.EXPECTED|inr }}</b>.
+      Real threads are lined up with a barrier so their reads and writes genuinely overlap.</p></div>
+  <form method="post"><button class="btn primary" {% if 'db.labs' not in perms %}disabled title="Head Admin and Supervisor only"{% endif %}>&#9654; Run all four scenarios</button></form>
+</div>
+{% if mock %}<div class="alert warning"><b>Mock mode:</b> scenarios A-C behave exactly as on MongoDB, but D is serialised by a lock. Connect to MongoDB (Atlas) to see a real <code>WriteConflict</code> and automatic retry.</div>{% endif %}
+
+{% if not results %}
+<div class="grid g4">
+  {% for k, t, d in [("A", "Read-modify-write ($set)", "The app reads the cover, subtracts, and writes the result back. Classic lost update."),
+                     ("B", "Atomic update ($inc)", "The server applies the subtraction itself, so concurrent updates cannot overwrite each other."),
+                     ("C", "Optimistic locking", "Each update only matches the version it read. The loser sees 0 matches and retries."),
+                     ("D", "Transaction", "Snapshot isolation: the second writer hits a WriteConflict and with_transaction() retries it.")] %}
+  <div class="card"><div class="card-body"><h2>{{ k }}. {{ t }}</h2><p class="muted">{{ d }}</p></div></div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="grid g4">
+  {% for r in results %}
+  <div class="card kpi {{ 'green' if r.correct else 'red' }}">
+    <div class="label">{{ r.key }}. {{ r.title }}</div>
+    <div class="value" style="color: var(--{{ 'green' if r.correct else 'red' }})">{{ r.final|inr }}</div>
+    <div class="sub">{% if r.correct %}&#10003; correct{% else %}&#10007; {{ (-r.lost)|inr }} lost (expected {{ r.expected|inr }}){% endif %}</div>
+  </div>
+  {% endfor %}
+</div>
+<div class="grid g2 mt">
+  {% for r in results %}
+  <div class="card">
+    <div class="card-head"><div><h2>{{ r.key }}. {{ r.title }}</h2><p>{{ r.how }}</p></div>
+      <span class="badge {{ 'b-green' if r.correct else 'b-red' }}">{{ 'correct' if r.correct else 'lost update' }}</span></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th class="num">ms</th><th>Who</th><th>Event</th></tr></thead>
+      <tbody>{% for l in r.log %}
+        <tr><td class="num mono">{{ l.ms }}</td><td class="nowrap">{{ l.who }}</td>
+          <td class="{{ 'strong' if 'CONFLICT' in l.msg or 'WriteConflict' in l.msg else '' }}" style="{{ 'color:var(--orange)' if 'CONFLICT' in l.msg or 'WriteConflict' in l.msg else '' }}">{{ l.msg }}</td></tr>
+      {% endfor %}
+      {% for e in r.errors %}<tr><td></td><td colspan="2" style="color:var(--red)">{{ e }}</td></tr>{% endfor %}</tbody></table>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="grid g3 mt">
+  <div class="note"><b>Where ClaimSure uses this.</b> Claim status changes and decisions use <b>optimistic locking</b>: every claim carries a <code>version</code>, and each form posts the version you saw. If someone else changed the claim meanwhile, your action is refused instead of overwriting theirs.</div>
+  <div class="note"><b>Policy cover</b> is always changed with an atomic, guarded <code>$inc</code> (<code>available_cover: {$gte: amount}</code>), so it can never go negative or lose a payment.</div>
+  <div class="note"><b>Settlement</b> runs inside <code>session.with_transaction()</code>: if two payments hit the same policy at once, MongoDB detects the write conflict, aborts one transaction and re-runs it.</div>
+</div>
+<p class="small muted mt">Uses sandbox collections <code>lab_cover</code> and <code>lab_payments</code>; real claims are not touched.</p>
+{% endblock %}

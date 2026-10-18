@@ -62,6 +62,38 @@ class _MockTx:
         self._undo.clear()
 
 
+def run_transaction(db, body, on_retry=None):
+    """Run ``body(tx)`` in a transaction and return its result.
+
+    Real MongoDB: ``session.with_transaction`` commits, and if a concurrent
+    transaction touched the same document (WriteConflict, a
+    TransientTransactionError) it aborts and re-runs ``body`` automatically.
+    ``on_retry(attempt)`` is called before every re-run. The body must therefore
+    be safe to repeat - it must only change data through ``tx``.
+    """
+    if is_mock():
+        with write_lock:
+            tx = _MockTx(db)
+            try:
+                return body(tx)
+            except BaseException:
+                tx.rollback()
+                raise
+    from pymongo.read_concern import ReadConcern
+    from pymongo.write_concern import WriteConcern
+    attempts = [0]
+
+    def callback(session):
+        attempts[0] += 1
+        if attempts[0] > 1 and on_retry:
+            on_retry(attempts[0])
+        return body(_RealTx(db, session))
+
+    with db.client.start_session() as session:
+        return session.with_transaction(callback, read_concern=ReadConcern("snapshot"),
+                                        write_concern=WriteConcern("majority"))
+
+
 @contextmanager
 def transaction(db):
     """``with transaction(db) as tx:`` - commit on success, roll back on any exception."""

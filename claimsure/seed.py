@@ -63,6 +63,11 @@ def seed(db=None, verbose=True):
     built = sum(1 for r in results if r[2] == "ok")
     say(f"  [OK] {built} indexes built" + (f", {len(results) - built} skipped (not supported by mongomock)"
                                             if built < len(results) else ""))
+    if not is_mock():  # views and the materialised view need a real server
+        from . import maintenance
+        maintenance.create_views(db)
+        mv = maintenance.refresh_materialized(db)
+        say(f"  [OK] views {', '.join(maintenance.VIEWS)} and {maintenance.MV_NAME} ({mv['rows']} rows)")
     total = sum(counts.values())
     say(f"  Total: {total:,} documents in {len(COLLECTIONS)} collections "
         f"({time.perf_counter() - started:.1f}s)\n")

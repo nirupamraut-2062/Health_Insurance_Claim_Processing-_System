@@ -32,8 +32,16 @@
       <a href="/analytics" class="{{ 'active' if active == 'analytics' }}">&#9650; Analytics</a>
       <div class="nav-group">Database</div>
       <a href="/database" class="{{ 'active' if active == 'database' }}">&#9707; DB Console</a>
+      <a href="/database/concurrency" class="{{ 'active' if active == 'concurrency' }}">&#8645; Concurrency Lab</a>
+      <a href="/database/scale" class="{{ 'active' if active == 'scale' }}">&#9881; Scale Benchmark</a>
+      <a href="/database/security" class="{{ 'active' if active == 'security' }}">&#9919; Security &amp; Roles</a>
+      <a href="/database/live" class="{{ 'active' if active == 'live' }}">&#9673; Live Feed</a>
+      <a href="/database/maintenance" class="{{ 'active' if active == 'maintenance' }}">&#9874; Maintenance</a>
       <a href="/database/query" class="{{ 'active' if active == 'query' }}">&#10095; Query Playground</a>
-      <a href="/audit" class="{{ 'active' if active == 'audit' }}">&#9719; Audit Log</a>
+      {% if 'audit.view' in perms %}<a href="/audit" class="{{ 'active' if active == 'audit' }}">&#9719; Audit Log</a>{% endif %}
+      <div class="nav-group">Account</div>
+      {% if 'staff.manage' in perms %}<a href="/admin/staff" class="{{ 'active' if active == 'staff' }}">&#9734; Staff &amp; Access</a>{% endif %}
+      <a href="/account" class="{{ 'active' if active == 'account' }}">&#9786; My Account</a>
     </nav>
     <div class="sidebar-foot">
       {{ APP_NAME }} v{{ VERSION }}<br>
@@ -51,15 +59,14 @@
       <span class="mode {{ 'mock' if mock else 'real' }}" title="{{ 'In-memory MongoDB (mongomock). Set CLAIMSURE_MONGO_URI to use a real server.' if mock else 'Connected to a MongoDB server' }}">
         {{ 'MOCK MODE &middot; mongomock'|safe if mock else 'LIVE &middot; MongoDB'|safe }}
       </span>
-      <form class="userbox" action="/switch-user" method="post">
-        <div class="avatar">{{ user.name.replace('Dr. ', '').split()[0][0] }}{{ user.name.split()[-1][0] }}</div>
-        <input type="hidden" name="back" value="{{ request.url.path }}">
-        <select name="user_id" onchange="this.form.submit()" title="Acting as (approval limit {{ user.approval_limit|inr }})">
-          {% for u in users %}
-          <option value="{{ u.user_id }}" {{ 'selected' if u.user_id == user.user_id }}>{{ u.name }} &mdash; {{ u.role }}</option>
-          {% endfor %}
-        </select>
-      </form>
+      <div class="userbox">
+        <a class="avatar" href="/account" title="My account">{{ user.name.replace('Dr. ', '').split()[0][0] }}{{ user.name.split()[-1][0] }}</a>
+        <div class="who" title="Approval limit {{ user.approval_limit|inr }}">
+          <b>{{ user.name }}</b>
+          <span>{{ user.role }} &middot; <span class="level l{{ {'Head Admin': 3, 'Supervisor': 2}.get(level, 1) }}">{{ level }}</span></span>
+        </div>
+        <form action="/logout" method="post"><button class="btn sm">Sign out</button></form>
+      </div>
     </header>
 
     <main class="content">

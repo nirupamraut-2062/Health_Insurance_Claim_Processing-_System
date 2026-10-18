@@ -30,7 +30,7 @@ from claimsure.fraud import score_claim  # noqa: E402
 from claimsure.utils import age_on  # noqa: E402
 
 SEED = 2026
-TODAY = datetime(2026, 10, 4, 18, 0)
+TODAY = datetime(2026, 10, 19, 8, 0)
 CLAIMS_FROM = datetime(2024, 4, 1)
 N_HOUSEHOLDS = 2200
 N_CLAIMS = 2600

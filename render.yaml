@@ -1,0 +1,23 @@
+# Render blueprint: deploys ClaimSure as a public web service (free plan).
+# Render -> New -> Blueprint -> pick this repository, then paste the two
+# connection strings when asked. The database itself stays on MongoDB Atlas.
+services:
+  - type: web
+    name: claimsure
+    runtime: python
+    plan: free
+    region: singapore          # closest Render region to the Atlas cluster in Mumbai (AWS ap-south-1)
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn web.app:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips "*"
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: TZ
+        value: Asia/Kolkata
+      - key: CLAIMSURE_MONGO_URI      # app user (readWrite), from Atlas -> Connect -> Drivers
+        sync: false
+      - key: CLAIMSURE_ANALYST_URI    # read-only analyst user, used by the Security page
+        sync: false

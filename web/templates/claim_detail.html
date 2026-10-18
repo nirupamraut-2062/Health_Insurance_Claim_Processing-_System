@@ -8,7 +8,7 @@
   <div>
     <div class="crumbs"><a href="/claims">Claims</a> / {{ c.claim_number }}</div>
     <h1>{{ c.claim_number }} &nbsp;{{ m.status(c.status) }}</h1>
-    <p>{{ c.claim_type }} &middot; {{ c.admission_type }} admission &middot; intimated {{ c.intimation_date|datetime }}
+    <p>{{ c.claim_type }} &middot; {{ c.admission_type }} admission &middot; intimated {{ c.intimation_date|datetime }} &middot; <span title="Optimistic-locking version: every update increments it">version {{ c.version or 0 }}{% if not c.schema_version %} (schema v1){% endif %}</span>
       {% if c.assigned_to %} &middot; assigned to <b>{{ staff[c.assigned_to].name if c.assigned_to in staff else c.assigned_to }}</b>{% endif %}</p>
   </div>
   <div class="btn-row">
@@ -164,7 +164,7 @@
     <div class="card-head"><div><h2>Actions</h2><p>Acting as {{ user.name }} &middot; limit {{ actions.approval_limit|inr }}</p></div></div>
     <div class="card-body">
       {% if actions.transitions %}
-      <form method="post" action="/claims/{{ c.claim_number }}/status" class="mb">
+      <form method="post" action="/claims/{{ c.claim_number }}/status" class="mb"><input type="hidden" name="version" value="{{ c.version or 0 }}">
         <label>Move claim to</label>
         <div class="btn-row">
           <select name="new_status" style="flex:1">{% for t in actions.transitions %}<option>{{ t }}</option>{% endfor %}</select>
@@ -175,7 +175,7 @@
       {% endif %}
 
       {% if actions.can_adjudicate %}
-      <form method="post" action="/claims/{{ c.claim_number }}/adjudicate" class="mb">
+      <form method="post" action="/claims/{{ c.claim_number }}/adjudicate" class="mb"><input type="hidden" name="version" value="{{ c.version or 0 }}">
         <label>Adjudicate</label>
         <div class="note mb">Engine result: <b>{{ preview.decision }}</b>{% if preview.eligible %} for <b>{{ preview.payable_amount|inr }}</b>{% endif %}.
           {% if preview.eligible and preview.payable_amount > actions.approval_limit %}<br><b style="color:var(--purple)">Above your approval limit &mdash; it will be escalated.</b>{% endif %}</div>
@@ -193,15 +193,46 @@
         <label>Settlement (multi-document ACID transaction)</label>
         <p class="small muted" style="margin:0 0 8px">Updates <b>claims</b>, <b>policies</b>, <b>payments</b> and <b>audit_logs</b> together &mdash; or not at all.</p>
         <div class="btn-row">
-          <form method="post" action="/claims/{{ c.claim_number }}/settle"><button class="btn success">Pay {{ c.approved_amount|inr }}</button></form>
-          <form method="post" action="/claims/{{ c.claim_number }}/settle"><input type="hidden" name="simulate_failure" value="1"><button class="btn danger" title="Fails after the claim and policy are updated, to prove the rollback">Simulate failure</button></form>
+          <form method="post" action="/claims/{{ c.claim_number }}/settle"><input type="hidden" name="version" value="{{ c.version or 0 }}"><button class="btn success">Pay {{ c.approved_amount|inr }}</button></form>
+          <form method="post" action="/claims/{{ c.claim_number }}/settle"><input type="hidden" name="version" value="{{ c.version or 0 }}"><input type="hidden" name="simulate_failure" value="1"><button class="btn danger" title="Fails after the claim and policy are updated, to prove the rollback">Simulate failure</button></form>
         </div>
       </div>
       {% endif %}
 
-      {% if not actions.transitions and not actions.can_adjudicate and not actions.can_settle %}
+      {% if actions.can_conclude %}
+      {% set rv = c.reverifications[-1] %}
+      <form method="post" action="/claims/{{ c.claim_number }}/reverify" class="mb"><input type="hidden" name="version" value="{{ c.version or 0 }}">
+        <label>Conclude re-verification</label>
+        <p class="small muted" style="margin:0 0 8px">Reopened from <b>{{ rv.from_status }}</b> by {{ rv.reopened_by_name }}: &ldquo;{{ rv.reason }}&rdquo;</p>
+        {% for o in actions.outcomes %}
+        <label class="inline-check"><input type="radio" name="outcome" value="{{ o }}" {{ 'checked' if loop.first }}> {{ outcome_labels[o] }}{% if o == 'uphold' %} (back to {{ rv.from_status }}){% elif o == 'readjudicate' %} (to Under Review){% endif %}</label>
+        {% endfor %}
+        <textarea name="notes" rows="3" style="margin-top:8px" placeholder="Verification findings (required)" required minlength="10"></textarea>
+        <button class="btn primary" style="margin-top:8px">Record outcome</button>
+      </form>
+      {% endif %}
+
+      {% if actions.can_reopen %}
+      <details class="mb" {{ 'open' if c.status == 'Settled' and c.fraud and c.fraud.risk_level == 'High' }}>
+        <summary>Reopen case for re-verification</summary>
+        <form method="post" action="/claims/{{ c.claim_number }}/reopen" class="mt" onsubmit="return confirm('Reopen {{ c.claim_number }} ({{ c.status }}) for re-verification?')">
+          <input type="hidden" name="version" value="{{ c.version or 0 }}">
+          <p class="small muted" style="margin:0 0 8px">Head Admin authority. The claim leaves <b>{{ c.status }}</b>, goes to the verifier's queue, and the reason is kept in the claim and the audit log.
+            {% if c.status == 'Settled' %}The payment is not reversed: the verifier can uphold it or flag it for recovery.{% else %}The verifier can uphold the decision or send the claim for fresh adjudication.{% endif %}</p>
+          <div class="field"><label>Assign to verifier</label>
+            <select name="assign_to">{% for v in verifiers %}<option value="{{ v.user_id }}" {{ 'selected' if v.user_id == user.user_id }}>{{ v.name }} &mdash; {{ v.role }}</option>{% endfor %}</select></div>
+          <div class="field"><label>Reason for re-verification</label>
+            <textarea name="reason" rows="2" required minlength="10" placeholder="e.g. Hospital added to the watch-list after settlement; verify the bills"></textarea></div>
+          <button class="btn danger">Reopen case</button>
+        </form>
+      </details>
+      {% elif c.status in ['Settled', 'Rejected', 'Withdrawn'] %}
+      <p class="muted small">This case is closed. Only the Head Admin can reopen a closed case for re-verification{% if c.status == 'Rejected' %}; a Claims Manager can re-open a rejection after an appeal{% endif %}.</p>
+      {% endif %}
+
+      {% if not actions.transitions and not actions.can_adjudicate and not actions.can_settle and not actions.can_conclude and not actions.can_reopen and c.status not in ['Settled', 'Rejected', 'Withdrawn'] %}
       <p class="muted small">No workflow actions available for a <b>{{ c.status }}</b> claim as {{ user.role }}.
-        {% if c.status in ['Under Review', 'Escalated', 'Approved', 'Partially Approved'] %}Switch to a Claims Manager (top right) to act on it.{% endif %}</p>
+        {% if c.status in ['Under Review', 'Escalated', 'Approved', 'Partially Approved'] %}A colleague with a higher approval limit or the assigned staff member can act on it.{% elif c.status == 'Re-verification' %}Only the assigned verifier, a Claims Manager or the Head Admin can conclude it.{% endif %}</p>
       {% endif %}
 
       <details class="mt">
@@ -216,6 +247,26 @@
       </details>
     </div>
   </div>
+
+  {% if c.reverifications %}
+  <div class="card mt" style="border-top:3px solid var(--pink)">
+    <div class="card-head"><div><h2>Re-verification</h2><p>Reopened {{ c.reopen_count or c.reverifications|length }} time(s) &middot; embedded <code>reverifications</code></p></div>
+      {% if c.status == 'Re-verification' %}{{ m.status('Re-verification') }}{% endif %}</div>
+    <div class="card-body">
+      {% for r in c.reverifications|reverse %}
+      <div class="stat-row small" style="display:block">
+        <div><b>{{ r.from_status }} &rarr; Re-verification</b> <span class="muted">&middot; {{ r.reopened_at|datetime }} by {{ r.reopened_by_name }}</span></div>
+        <div class="muted">Reason: {{ r.reason }}</div>
+        <div>Verifier: {{ staff[r.assigned_to].name if r.assigned_to in staff else r.assigned_to }}</div>
+        {% if r.outcome %}<div><b>{{ r.outcome }}</b> <span class="muted">&middot; {{ r.concluded_at|datetime }} by {{ staff[r.concluded_by].name if r.concluded_by in staff else r.concluded_by }}</span></div>
+          <div class="muted">{{ r.notes }}</div>
+        {% else %}<div><i>In progress</i></div>{% endif %}
+      </div>
+      {% endfor %}
+      {% if c.recovery %}<div class="alert error mt" style="margin-bottom:0"><b>{{ c.recovery.status }}: {{ c.recovery.amount|inr }}</b><br>{{ c.recovery.reason }}</div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
 
   {% if c.fraud %}
   <div class="card mt">

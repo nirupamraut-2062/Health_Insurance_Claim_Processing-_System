@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Security &amp; Roles{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Security: users, roles and least privilege</h1>
+    <p>Each kind of user gets only the privileges it needs, and the <b>database server</b> enforces them, so a bug in the app cannot bypass them.</p></div>
+  <form method="post"><button class="btn primary" {{ 'disabled' if mock or 'db.labs' not in perms }}>&#9654; Test the read-only analyst account</button></form>
+</div>
+
+<div class="grid g3">
+  <div class="card kpi accent"><div class="label">App is connected as</div><div class="value" style="font-size:20px">{{ me.users|join(', ') or ('mongomock (no auth)' if mock else 'no authentication') }}</div>
+    <div class="sub">{{ me.roles|join(', ') or me.note or '' }}</div></div>
+  <div class="card kpi teal"><div class="label">Analyst account</div><div class="value" style="font-size:20px">{{ 'configured' if analyst else 'not configured' }}</div>
+    <div class="sub">CLAIMSURE_ANALYST_URI in .env</div></div>
+  <div class="card kpi purple"><div class="label">Transport</div><div class="value" style="font-size:20px">{{ 'TLS (Atlas)' if not mock and 'Atlas' in server_engine else ('-' if mock else 'as configured') }}</div>
+    <div class="sub">Atlas always encrypts connections and data at rest</div></div>
+</div>
+
+{% if demo %}
+<div class="card mt">
+  {% if demo.available %}
+  <div class="card-head"><div><h2>Connected as <code>{{ demo.user }}</code></h2><p>Roles: {{ demo.roles }}</p></div>
+    <span class="badge {{ 'b-green' if demo.safe else 'b-red' }}">{{ 'least privilege enforced' if demo.safe else 'check the roles' }}</span></div>
+  <div class="card-body flush"><table class="data">
+    <thead><tr><th>Attempt</th><th>Kind</th><th>Server response</th><th>Result</th></tr></thead>
+    <tbody>{% for r in demo.rows %}
+      <tr><td><b>{{ r.action }}</b></td><td>{{ r.kind }}</td><td class="mono small">{{ r.detail }}</td>
+        <td>{% if r.allowed %}<span class="badge b-green">allowed</span>{% else %}<span class="badge b-red">denied{% if r.code %} &middot; code {{ r.code }}{% endif %}</span>{% endif %}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}
+  <div class="card-body"><div class="alert warning" style="margin:0"><b>Not available:</b> {{ demo.reason }}</div></div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="card mt">
+  <div class="card-head"><div><h2>Role design</h2><p>Created by <code>scripts/09_security.js</code> on a self-managed server, or under <i>Security &rarr; Database Access</i> on Atlas</p></div></div>
+  <div class="card-body flush"><table class="data">
+    <thead><tr><th>User</th><th>Role</th><th>Used by</th><th>Can</th><th>Cannot</th></tr></thead>
+    <tbody>{% for r in roles %}
+      <tr><td class="mono strong">{{ r.user }}</td><td>{{ r.role }}</td><td>{{ r.who }}</td><td>{{ r.can }}</td><td class="muted">{{ r.cannot }}</td></tr>
+    {% endfor %}</tbody></table></div>
+</div>
+
+<div class="grid g3 mt">
+  <div class="note"><b>Data masking with a view.</b> Analysts query <code>members_masked</code>, a read-only view that drops KYC numbers and shows only the last four phone digits (<a href="/database/maintenance">Maintenance &rarr; Views</a>).</div>
+  <div class="note"><b>Secrets stay out of code.</b> Connection strings live in <code>.env</code>, which is listed in <code>.gitignore</code> and never pushed to GitHub.</div>
+  <div class="note"><b>Network access.</b> Atlas only accepts connections from allowed IP addresses, always over TLS. Every change is also written to <code>audit_logs</code>.</div>
+</div>
+{% endblock %}

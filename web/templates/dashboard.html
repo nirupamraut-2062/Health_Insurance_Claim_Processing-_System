@@ -24,6 +24,13 @@
   {{ m.kpi("Active policies", k.active_policies|num, (k.lives_covered|num) ~ " lives &middot; premium " ~ (k.premium_in_force|inr_short), "green") }}
 </div>
 
+{% if reverifying %}
+<div class="card mt" style="border-top:3px solid var(--pink)">
+  <div class="card-head"><div><h2>Cases under re-verification</h2><p>Closed cases reopened by the Head Admin</p></div><a class="small" href="/claims?status=Re-verification">View all</a></div>
+  <div class="card-body flush">{{ m.claims_table(reverifying, show_hospital=False, show_risk=False, compact=True) }}</div>
+</div>
+{% endif %}
+
 <div class="grid mt" style="grid-template-columns: minmax(0,2fr) minmax(0,1fr)">
   <div class="card">
     <div class="card-head"><div><h2>Monthly claim inflow &amp; payout</h2><p>By month of admission</p></div><a class="small" href="/analytics#monthly_trend">Details</a></div>
@@ -49,7 +56,7 @@
 <div class="grid g2 mt">
   <div class="card">
     <div class="card-head"><div><h2>My work queue</h2><p>Open claims assigned to you</p></div><a class="small" href="/claims?assigned=me&status=open">View all</a></div>
-    <div class="card-body flush">{{ m.claims_table(my_queue, show_hospital=False, show_risk=False, compact=True) if my_queue else '<div class="empty">Nothing assigned to you right now. Switch user (top right) or pick a claim from the <a href="/claims?status=Under%20Review">review queue</a>.</div>'|safe }}</div>
+    <div class="card-body flush">{{ m.claims_table(my_queue, show_hospital=False, show_risk=False, compact=True) if my_queue else '<div class="empty">Nothing assigned to you right now. Pick a claim from the <a href="/claims?status=Under%20Review">review queue</a>.</div>'|safe }}</div>
   </div>
   <div class="card">
     <div class="card-head"><div><h2>Fraud alerts on open claims</h2><p>Highest risk first</p></div><a class="small" href="/fraud?open=1">Fraud watch</a></div>

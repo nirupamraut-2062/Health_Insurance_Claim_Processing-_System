@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Scale Benchmark{% endblock %}
+{% block content %}
+<style>.bench .tag{white-space:normal} .bench td:first-child{min-width:230px} .bench td{padding-left:10px;padding-right:10px}</style>
+<div class="page-head">
+  <div><h1>Scale benchmark</h1>
+    <p>Builds <code>bench_claims</code> with up to 200,000 documents, runs nine queries with only the <code>_id</code> index,
+      builds five secondary indexes, and runs them again. Plans come from real <code>explain("executionStats")</code>;
+      times are the median of three runs.</p></div>
+  <form method="post" class="btn-row">
+    <select name="n">{% for n in [20000, 50000, 100000, 200000] %}<option value="{{ n }}" {{ 'selected' if n == 100000 }}>{{ '{:,}'.format(n) }} documents</option>{% endfor %}</select>
+    <button class="btn primary" {{ 'disabled' if state.running or mock or 'db.benchmark' not in perms }}>&#9654; Run benchmark</button>
+  </form>
+</div>
+{% if mock %}<div class="alert warning"><b>Needs a real MongoDB server.</b> mongomock has no query planner, so there is nothing real to measure. Set <code>CLAIMSURE_MONGO_URI</code> (Atlas) and reload.</div>{% endif %}
+{% if state.running %}<div class="alert info" id="status"><b>Running:</b> <span id="phase">{{ state.phase }}</span></div>{% endif %}
+{% if state.error %}<div class="alert error"><b>Last run failed:</b> {{ state.error }}</div>{% endif %}
+
+{% if latest %}
+<div class="grid g4">
+  <div class="card kpi accent"><div class="label">Documents</div><div class="value">{{ '{:,}'.format(latest.documents) }}</div><div class="sub">loaded in {{ latest.load_seconds }} s</div></div>
+  <div class="card kpi purple"><div class="label">Index build</div><div class="value">{{ latest.index_build_seconds }} s</div><div class="sub">{{ latest.indexes|length }} secondary indexes</div></div>
+  <div class="card kpi teal"><div class="label">Data size</div><div class="value">{{ latest.sizes.data_mb or '-' }} MB</div><div class="sub">indexes {{ latest.sizes.index_mb or '-' }} MB</div></div>
+  <div class="card kpi green"><div class="label">Run at</div><div class="value" style="font-size:18px">{{ latest.run_at|datetime }}</div><div class="sub">results stored in <code>bench_results</code></div></div>
+</div>
+
+<div class="card mt">
+  <div class="card-head"><h2>Before and after indexing</h2><span class="small muted">keys / docs examined from executionStats</span></div>
+  <div class="card-body flush"><div class="table-wrap"><table class="data bench">
+    <thead><tr><th>Query</th><th>No index</th><th>With indexes</th><th class="num">Keys read</th><th class="num">Docs examined</th><th class="num">Returned</th><th class="num">Time</th><th class="num">Speed-up</th></tr></thead>
+    <tbody>{% for c in latest.cases %}
+      {% set good = c.speedup and c.speedup >= 2 %}
+      <tr>
+        <td title="find({{ c.filter|pretty|replace('
+', ' ') }}){% if c.sort %}.sort({{ c.sort|tojson }}){% endif %}"><b>{{ c.title }}</b><div class="sub">{{ c.kind }}</div></td>
+        <td><span class="tag">{{ c.before.plan }}</span></td>
+        <td><span class="tag" style="background:var(--{{ 'green' if 'IXSCAN' in c.after.plan else 'red' }}-soft);color:var(--{{ 'green' if 'IXSCAN' in c.after.plan else 'red' }})">{{ c.after.plan }}</span></td>
+        <td class="num">{{ '{:,}'.format(c.after['keys']) }}</td>
+        <td class="num">{{ '{:,}'.format(c.before.docs) }} &rarr; <b>{{ '{:,}'.format(c.after.docs) }}</b></td>
+        <td class="num">{{ '{:,}'.format(c.after.returned) }}</td>
+        <td class="num">{{ c.before.wall_ms }} &rarr; <b>{{ c.after.wall_ms }}</b> ms</td>
+        <td class="num"><b style="color:var(--{{ 'green' if good else ('red' if c.speedup and c.speedup < 1 else 'amber') }})">{{ c.speedup }}&times;</b></td>
+      </tr>
+    {% endfor %}</tbody></table></div></div>
+</div>
+<div class="grid g3 mt">
+  <div class="note"><b>Covered query.</b> When the filter and the projection only use indexed fields, MongoDB answers from the index: <code>PROJECTION_COVERED</code> and 0 documents examined.</div>
+  <div class="note"><b>Prefix rule.</b> A compound index <code>{status, submitted_at}</code> cannot serve a query on <code>submitted_at</code> alone: the leading field is missing, so the plan stays a <code>COLLSCAN</code>.</div>
+  <div class="note"><b>When indexes don't help.</b> An unanchored regex must read every index key, and a filter matching 78% of documents is faster as a plain collection scan. Indexes pay off for selective queries.</div>
+</div>
+{% elif not mock %}
+<div class="card"><div class="empty">No benchmark has been run yet on this database. Choose a size and click Run.</div></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if state.running %}
+<script>
+(async function poll() {
+  const s = await (await fetch("/api/bench/status")).json();
+  document.getElementById("phase").textContent = s.phase;
+  if (s.running) setTimeout(poll, 1500); else location.reload();
+})();
+</script>
+{% endif %}
+{% endblock %}

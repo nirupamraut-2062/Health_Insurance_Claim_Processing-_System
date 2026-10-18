@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Live Feed{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Live feed: change streams</h1>
+    <p>MongoDB pushes every insert and update on {{ watched|join(', ') }} to this page the moment it happens, read from the replica set's oplog.
+      Open a claim in another tab, change it, and watch it appear here.</p></div>
+  <span class="badge b-{{ 'amber' if mock else 'green' }}" id="state">{{ 'connecting' }}</span>
+</div>
+{% if mock %}<div class="alert warning"><b>Mock mode:</b> mongomock has no change streams, so this page polls the audit log instead. On MongoDB (Atlas) it uses a real change stream.</div>{% endif %}
+<div class="split">
+  <div class="card">
+    <div class="card-head"><h2>Events</h2><span class="small muted" id="count">0 events</span></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th>Time</th><th>Collection</th><th>Operation</th><th>Change</th><th>Fields</th></tr></thead>
+      <tbody id="events"><tr id="empty"><td colspan="5" class="empty">Waiting for changes&hellip;</td></tr></tbody></table></div>
+  </div>
+  <div>
+    <div class="card"><div class="card-head"><h2>The change stream</h2></div>
+      <div class="card-body"><pre class="code">db.watch({{ pipeline|pretty }},
+  { fullDocument: "updateLookup" })</pre>
+      <p class="small muted mt">Server-side filtering: only the operations and collections listed are sent. <code>updateLookup</code> attaches the current document to each update event.</p></div></div>
+    <div class="note mt">Change streams need a replica set, because they read the oplog that replication uses. A consumer can store the <b>resume token</b> of the last event and continue from it after a restart without missing anything.</div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const body = document.getElementById("events"), state = document.getElementById("state");
+let n = 0;
+const es = new EventSource("/api/live");
+es.onopen = () => { state.textContent = "listening"; };
+es.onerror = () => { state.textContent = "reconnecting"; };
+es.onmessage = (m) => {
+  const e = JSON.parse(m.data);
+  document.getElementById("empty")?.remove();
+  const tr = document.createElement("tr");
+  const link = e.collection === "claims" ? `<a href="/claims/${e.key}">${e.text}</a>` : e.text;
+  tr.innerHTML = `<td class="mono">${e.at}</td><td class="mono">${e.collection}</td><td><span class="tag">${e.op}</span></td><td>${link}</td><td class="small muted">${(e.fields || []).join(", ")}</td>`;
+  body.prepend(tr);
+  document.getElementById("count").textContent = `${++n} events · ${e.source}`;
+};
+</script>
+{% endblock %}

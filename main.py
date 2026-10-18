@@ -7,7 +7,17 @@
     python main.py generate     regenerate the synthetic data set
     python main.py report       print the KPI summary and key reports
     python main.py benchmark    run the index benchmark
-    python main.py test         run the automated test-suite
+    python main.py test         run the automated test-suite (in-memory mock)
+    python main.py test-live    run the live tests against the real MongoDB in .env
+    python main.py lab          concurrency-control lab (lost update vs locking vs transactions)
+    python main.py bench        scale benchmark on 100,000 documents (--n to change)
+    python main.py watch        print the live change stream
+    python main.py security     try reads and writes as the read-only analyst user
+    python main.py renew        run the policy renewal batch job
+    python main.py migrate      upgrade claims to the current schema version
+    python main.py views        create the read-only views
+    python main.py backup       logical backup of every collection
+    python main.py restore NAME restore a backup from backups/NAME
 """
 import argparse
 import os
@@ -344,7 +354,102 @@ MENU = [
     ("8", "Index benchmark", benchmark_menu),
     ("9", "ACID transaction demo", transaction_menu),
     ("10", "Schema validation demo", validation_menu),
+    ("11", "Concurrency-control lab", lambda db: lab_menu(db)),
+    ("12", "Watch the live change stream", lambda db: watch_menu(db)),
 ]
+
+
+def lab_menu(db):
+    from claimsure import concurrency
+    header("Concurrency-control lab: two adjusters pay against the same policy at once")
+    print(f"  Start cover {inr(concurrency.START)}, two payments of {inr(concurrency.AMOUNT)}: "
+          f"correct result {inr(concurrency.EXPECTED)}\n")
+    for r in concurrency.run_lab(db):
+        verdict = f"{G}correct{Style.RESET_ALL}" if r["correct"] else f"{R}LOST {inr(-r['lost'])}{Style.RESET_ALL}"
+        print(f"{BOLD}{r['key']}. {r['title']}{Style.RESET_ALL}  ->  final {inr(r['final'])}  {verdict}")
+        print(f"   {DIM}{r['how']}{Style.RESET_ALL}")
+        for line in r["log"]:
+            color = Y if ("CONFLICT" in line["msg"] or "WriteConflict" in line["msg"]) else ""
+            print(f"   {line['ms']:>7.1f} ms  {line['who']:<11} {color}{line['msg']}{Style.RESET_ALL}")
+        print()
+
+
+def watch_menu(db):
+    from claimsure import livefeed
+    header("Live change stream - make changes in the web app (Ctrl+C to stop)")
+    try:
+        for ev in livefeed.events(db):
+            if ev:
+                print(f"  {ev['at']}  {ev['collection']:<10} {ev['op']:<7} {ev['text']}   {DIM}[{ev['source']}]{Style.RESET_ALL}")
+    except KeyboardInterrupt:
+        print()
+
+
+def db_lab_command(db, args):
+    from claimsure import benchmark, maintenance, security
+    if args.command == "lab":
+        lab_menu(db)
+    elif args.command == "watch":
+        watch_menu(db)
+    elif args.command == "bench":
+        header(f"Scale benchmark on {args.n:,} documents")
+        r = benchmark.run(db, args.n, progress=lambda m: print(f"  .. {m}") if "inserted" not in m else None)
+        print(f"\n  loaded in {r['load_seconds']} s, indexes built in {r['index_build_seconds']} s, sizes {r['sizes']}\n")
+        table([(c["title"], c["before"]["plan"], c["after"]["plan"], f"{c['before']['docs']:,} -> {c['after']['docs']:,}",
+                f"{c['before']['wall_ms']} -> {c['after']['wall_ms']} ms", f"{c['speedup']}x") for c in r["cases"]],
+              ["Query", "No index", "With indexes", "Docs examined", "Time", "Speed-up"])
+    elif args.command == "security":
+        header("Least privilege: the read-only analyst account")
+        res = security.analyst_demo()
+        if not res["available"]:
+            print(f"  {Y}{res['reason']}")
+            return
+        print(f"  Connected as {res['user']} ({res['roles']})\n")
+        for r in res["rows"]:
+            mark = f"{G}allowed" if r["allowed"] else f"{R}DENIED "
+            print(f"  {mark}{Style.RESET_ALL}  {r['kind']:<5}  {r['action']:<40} {DIM}{r['detail'][:90]}{Style.RESET_ALL}")
+    elif args.command == "renew":
+        print(maintenance.renew_due_policies(db))
+    elif args.command == "migrate":
+        print(maintenance.migrate_schema(db))
+    elif args.command == "views":
+        print(maintenance.create_views(db))
+    elif args.command == "backup":
+        r = maintenance.backup(db)
+        print(f"{G}Backup written to {r['folder']} ({sum(r['collections'].values()):,} documents, {r['seconds']} s)")
+    elif args.command == "restore":
+        if not args.name:
+            for b in maintenance.list_backups():
+                print(f"  {b['name']}  {b['documents']:,} documents")
+            print(f"{Y}Usage: python main.py restore NAME")
+            return
+        print(maintenance.restore(db, args.name))
+
+
+def staff_command(db, args):
+    """Sign-in accounts: list them, or issue a temporary password (e.g. when the Head Admin is locked out)."""
+    from claimsure import auth
+    ensure_seeded(db)
+    setup = auth.ensure_setup(db)
+    for group, password in setup["generated"].items():
+        print(f"{Y}{group} initial password: {password}")
+    if args.command == "users":
+        header("Staff sign-in accounts")
+        rows = [[s["user_id"], s["name"], s["email"], s["role"], s["level"],
+                 "inactive" if not s["active"] else ("LOCKED" if s["locked"] else "active"),
+                 "temporary" if s["must_change"] else "set", fmt_date(s["last_login_at"], with_time=True)
+                 if s["last_login_at"] else "never", s["sessions"]] for s in auth.staff_overview(db)]
+        table(rows, ["ID", "Name", "Email", "Role", "Level", "Status", "Password", "Last sign-in", "Sessions"])
+        print(f"\n{C}Sign in with the email or the staff ID. Initial passwords come from CLAIMSURE_ADMIN_PASSWORD "
+              f"(Head Admin) and CLAIMSURE_STAFF_PASSWORD (everyone else) in .env.")
+        return
+    user = auth.find_user(db, args.name)
+    if not user:
+        sys.exit(f"{R}Usage: python main.py reset-password USR001 (staff ID or email)")
+    head = db.users.find_one({"role": "Admin", "active": True}, {"_id": 0}) or user
+    target, password = auth.reset_password(db, {**head, "role": "Admin"}, user["user_id"])
+    print(f"{G}Temporary password for {target['name']} ({target['user_id']}): {password}")
+    print("It must be changed at the next sign-in. All of their sessions were ended.")
 
 
 def interactive():
@@ -381,7 +486,11 @@ def interactive():
 def main():
     parser = argparse.ArgumentParser(description=f"{APP_NAME} - {APP_TAGLINE}")
     parser.add_argument("command", nargs="?", default="menu",
-                        choices=["menu", "web", "seed", "init-db", "generate", "report", "benchmark", "test"])
+                        choices=["menu", "web", "seed", "init-db", "generate", "report", "benchmark", "test", "test-live",
+                                 "lab", "bench", "watch", "security", "renew", "migrate", "views", "backup", "restore",
+                                 "users", "reset-password"])
+    parser.add_argument("name", nargs="?", help="backup name for restore, or staff ID / email for reset-password")
+    parser.add_argument("--n", type=int, default=100000, help="documents for the scale benchmark")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--no-browser", action="store_true")
     args = parser.parse_args()
@@ -395,7 +504,7 @@ def main():
         if not args.no_browser:
             threading.Timer(2.5, lambda: webbrowser.open(f"http://127.0.0.1:{args.port}")).start()
         print(f"{G}Starting {APP_NAME} on http://127.0.0.1:{args.port}  (Ctrl+C to stop)")
-        uvicorn.run("web.app:app", host="127.0.0.1", port=args.port, log_level="warning")
+        uvicorn.run("web.app:app", host="127.0.0.1", port=args.port, log_level="warning", timeout_graceful_shutdown=2)
     elif args.command in ("seed", "init-db"):
         if args.command == "init-db" and is_mock():
             print(f"{Y}CLAIMSURE_MONGO_URI is not set - running against mongomock (data is not persisted).")
@@ -417,6 +526,19 @@ def main():
     elif args.command == "test":
         import subprocess
         sys.exit(subprocess.call([sys.executable, "-m", "pytest", "-q", "tests"]))
+    elif args.command in ("lab", "bench", "watch", "security", "renew", "migrate", "views", "backup", "restore"):
+        db = get_db()
+        ensure_seeded(db)
+        db_lab_command(db, args)
+    elif args.command in ("users", "reset-password"):
+        staff_command(get_db(), args)
+    elif args.command == "test-live":
+        import subprocess
+        if is_mock():
+            sys.exit(f"{R}test-live needs CLAIMSURE_MONGO_URI (in .env or the environment).")
+        env = dict(os.environ, CLAIMSURE_DB="claimsure_test")
+        print(f"{C}Running live tests on {server_info(get_db())['engine']} (database claimsure_test)")
+        sys.exit(subprocess.call([sys.executable, "-m", "pytest", "-q", "-p", "no:warnings", "tests_live"], env=env))
 
 
 if __name__ == "__main__":

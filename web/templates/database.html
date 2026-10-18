@@ -95,6 +95,6 @@
 
 <div class="card mt">
   <div class="card-head"><div><h2>Reset data</h2><p>Drops every collection and reloads the data set from <code>data/*.json</code> (Admin only)</p></div>
-    <form method="post" action="/database/reseed" onsubmit="return confirm('Drop and reload all collections?')"><button class="btn danger">Reset database</button></form></div>
+    <form method="post" action="/database/reseed" onsubmit="return confirm('Drop and reload all collections?')"><button class="btn danger" {% if 'db.reset' not in perms %}disabled title="Head Admin only"{% endif %}>Reset database</button></form></div>
 </div>
 {% endblock %}

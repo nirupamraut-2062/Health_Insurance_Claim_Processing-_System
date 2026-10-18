@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}My account{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>My account</h1>
+    <p>{{ user.name }} &middot; {{ user.email }} &middot; staff ID <span class="mono">{{ user.user_id }}</span></p>
+  </div>
+</div>
+
+<div class="grid g4">
+  {{ m.kpi("Role", user.role, user.department ~ " &middot; " ~ user.region, "accent") }}
+  <div class="card kpi pink"><div class="label">Access level</div><div class="value"><span class="level l{{ {'Head Admin': 3, 'Supervisor': 2}.get(level, 1) }}" style="font-size:18px">{{ level }}</span></div><div class="sub">{{ perms|length }} of {{ matrix|length }} permissions</div></div>
+  {{ m.kpi("Approval limit", user.approval_limit|inr, "Claims above it are escalated", "teal") }}
+  {{ m.kpi("Signed-in sessions", sessions|length, "This session ends " ~ (user.session_expires_at|datetime), "purple") }}
+</div>
+
+<div class="grid g2 mt">
+  <div class="card">
+    <div class="card-head"><div><h2>Change password</h2><p>At least {{ min_password }} characters, with letters and digits. Other sessions are signed out.</p></div></div>
+    <div class="card-body">
+      {% if user.must_change_password %}<div class="alert warning"><b>You are using a temporary password.</b> Choose your own to continue.</div>{% endif %}
+      <form method="post" action="/account/password" autocomplete="off">
+        <div class="field"><label>Current password</label><input type="password" name="current" autocomplete="current-password" required></div>
+        <div class="field"><label>New password</label><input type="password" name="new" autocomplete="new-password" minlength="{{ min_password }}" required></div>
+        <div class="field"><label>Repeat new password</label><input type="password" name="confirm" autocomplete="new-password" minlength="{{ min_password }}" required></div>
+        <button class="btn primary">Change password</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h2>What I can do</h2><p>Permissions come from your role; only the Head Admin can change it.</p></div></div>
+    <div class="card-body flush"><table class="data"><tbody>
+      {% for p in matrix %}
+      <tr><td style="width:36px">{% if p.key in perms %}<span class="check">&#10003;</span>{% else %}<span class="cross">&#10007;</span>{% endif %}</td>
+        <td class="{{ '' if p.key in perms else 'muted' }}">{{ p.label }}</td></tr>
+      {% endfor %}
+    </tbody></table></div>
+  </div>
+</div>
+
+<div class="grid g2 mt">
+  <div class="card">
+    <div class="card-head"><div><h2>Active sessions</h2><p>Stored in the <code>sessions</code> collection; a TTL index removes them when they expire</p></div></div>
+    <div class="card-body flush"><table class="data">
+      <thead><tr><th>Signed in</th><th>Expires</th><th>IP</th><th>Browser</th></tr></thead>
+      <tbody>{% for s in sessions %}
+        <tr><td>{{ s.created_at|datetime }}</td><td>{{ s.expires_at|datetime }}</td><td class="mono">{{ s.ip }}</td><td class="small muted">{{ (s.user_agent or '-')[:60] }}</td></tr>
+      {% endfor %}</tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>My sign-in history</h2><p>From the audit log</p></div></div>
+    <div class="card-body">{% for a in history %}
+      <div class="stat-row small"><div><b>{{ a.action }}</b><div class="muted">{{ a.summary }}</div></div><span class="muted nowrap">{{ a.timestamp|datetime }}</span></div>
+    {% else %}<p class="muted small">No events yet.</p>{% endfor %}</div>
+  </div>
+</div>
+{% endblock %}

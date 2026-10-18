@@ -9,21 +9,46 @@ from datetime import datetime
 
 from pymongo import ReturnDocument
 
-from . import audit, fraud
+from . import audit, auth, fraud
 from .adjudication import adjudicate
 from .constants import (
-    TRANSITIONS, DECISION_STATUSES, AWAITING_PAYMENT, ROLES, STATE_REGION, DOCUMENT_TYPES,
+    TRANSITIONS, DECISION_STATUSES, AWAITING_PAYMENT, CLOSED_STATUSES, ROLES, STATE_REGION, DOCUMENT_TYPES,
     ROOM_TARIFF, BILL_KEYS, REJECTION_REASONS, GRIEVANCE_CATEGORIES,
-    INTIMATED, DOCS_PENDING, UNDER_REVIEW, QUERY_RAISED, ESCALATED, REJECTED, SETTLED, WITHDRAWN,
+    INTIMATED, DOCS_PENDING, UNDER_REVIEW, QUERY_RAISED, ESCALATED, REJECTED, SETTLED, WITHDRAWN, REVERIFICATION,
 )
 from .db import write_lock
 from .schema import insert_validated
-from .transactions import transaction
+from .transactions import run_transaction
 from .utils import age_on, inr, parse_date
 
 
 class WorkflowError(Exception):
     """A business rule prevented the requested action."""
+
+
+class ConcurrencyError(WorkflowError):
+    """Optimistic lock failure: the claim changed after this user read it."""
+
+
+def _lock_filter(claim, expected_version=None):
+    """Optimistic locking. The update only matches the version that was read
+    (v1 documents without a version field match on its absence)."""
+    current = claim.get("version")
+    if expected_version is not None and int(expected_version) != (current or 0):
+        raise ConcurrencyError(
+            f"{claim['claim_number']} was changed by someone else after you opened it "
+            f"(you saw version {expected_version}, it is now version {current or 0}). Reload and try again.")
+    return {"_id": claim["_id"], "version": current if current is not None else {"$exists": False}}
+
+
+def _guarded_update(db, claim, update, expected_version=None):
+    """update_one guarded by the optimistic lock; bumps the version on success."""
+    update.setdefault("$inc", {})["version"] = 1
+    res = db.claims.update_one(_lock_filter(claim, expected_version), update)
+    if res.matched_count != 1:
+        raise ConcurrencyError(f"{claim['claim_number']} was changed by another user at the same moment. "
+                               f"Nothing was saved; reload and try again.")
+    return res
 
 
 # A counter bumped on every write; analytics caches use it to know when to refresh.
@@ -70,20 +95,23 @@ def preview_adjudication(db, claim, manual_rejection=None):
 
 def available_actions(claim, user):
     status, role = claim["status"], user["role"]
-    manager = role in ("Admin", "Claims Manager")
     transitions = []
-    for nxt in TRANSITIONS[status]:
-        if nxt in DECISION_STATUSES or nxt in (SETTLED, ESCALATED):
-            continue
-        if status == REJECTED and not manager:
-            continue
-        transitions.append(nxt)
+    if status != REVERIFICATION:  # re-verification is concluded through its own form
+        for nxt in TRANSITIONS[status]:
+            if nxt in DECISION_STATUSES or nxt in (SETTLED, ESCALATED):
+                continue
+            if status == REJECTED and not auth.can(user, "claims.reopen_rejected"):
+                continue
+            transitions.append(nxt)
     return {
         "transitions": transitions,
         "can_adjudicate": status in (UNDER_REVIEW, ESCALATED) and ROLES[role]["can_decide"],
-        "can_settle": status in AWAITING_PAYMENT and role in ("Admin", "Claims Manager", "Senior Claims Adjuster"),
-        "can_review_fraud": role in ("Fraud Analyst", "Admin", "Claims Manager")
+        "can_settle": status in AWAITING_PAYMENT and auth.can(user, "claims.settle"),
+        "can_review_fraud": auth.can(user, "claims.fraud_review")
                             and (claim.get("fraud") or {}).get("risk_level") in ("Medium", "High"),
+        "can_reopen": status in CLOSED_STATUSES and auth.can(user, "claims.reopen_closed"),
+        "can_conclude": status == REVERIFICATION and can_conclude_reverification(claim, user),
+        "outcomes": reverification_outcomes(claim) if status == REVERIFICATION else [],
         "approval_limit": ROLES[role]["approval_limit"],
     }
 
@@ -96,14 +124,17 @@ def _history(status, user, remarks, at=None):
 # --------------------------------------------------------------------------- #
 # Status changes
 # --------------------------------------------------------------------------- #
-def change_status(db, claim_number, new_status, user, remarks=""):
+def change_status(db, claim_number, new_status, user, remarks="", expected_version=None):
     with write_lock:
         claim = get_claim(db, claim_number)
+        _lock_filter(claim, expected_version)
         old = claim["status"]
         if new_status not in TRANSITIONS[old] or new_status in DECISION_STATUSES + [SETTLED, ESCALATED]:
             raise WorkflowError(f"Cannot move a claim from '{old}' to '{new_status}' manually")
-        if old == REJECTED and user["role"] not in ("Admin", "Claims Manager"):
-            raise WorkflowError("Only a Claims Manager can re-open a rejected claim")
+        if old == REVERIFICATION:
+            raise WorkflowError("Conclude the re-verification with its own form (uphold, re-adjudicate or recover)")
+        if old == REJECTED and not auth.can(user, "claims.reopen_rejected"):
+            raise WorkflowError("Only a Claims Manager or the Head Admin can re-open a rejected claim")
         now = datetime.now()
         sets = {"status": new_status, "updated_at": now}
         push = {"status_history": _history(new_status, user, remarks or f"Moved to {new_status}", now)}
@@ -137,7 +168,7 @@ def change_status(db, claim_number, new_status, user, remarks=""):
         update = {"$set": sets, "$push": push}
         if unset:
             update["$unset"] = unset
-        db.claims.update_one({"claim_number": claim_number, "status": old}, update)
+        _guarded_update(db, claim, update, expected_version)
         audit.log(db, user, "CLAIM_STATUS_CHANGED", "claim", claim_number,
                   f"{claim_number}: {old} → {new_status}", {"from": old, "to": new_status, "remarks": remarks})
         mark_changed()
@@ -157,12 +188,13 @@ def _approver_for(db, amount, region):
     return db.users.find_one({"role": "Admin"}, {"_id": 0})
 
 
-def adjudicate_claim(db, claim_number, user, manual_rejection=None, remarks=""):
+def adjudicate_claim(db, claim_number, user, manual_rejection=None, remarks="", expected_version=None):
     """Run the adjudication engine and record the decision, or escalate it."""
     if manual_rejection and manual_rejection not in REJECTION_REASONS:
         raise WorkflowError("Unknown rejection reason")
     with write_lock:
         claim = get_claim(db, claim_number)
+        _lock_filter(claim, expected_version)
         if claim["status"] not in (UNDER_REVIEW, ESCALATED):
             raise WorkflowError(f"Only claims Under Review or Escalated can be adjudicated (now '{claim['status']}')")
         if not ROLES[user["role"]]["can_decide"]:
@@ -177,9 +209,9 @@ def adjudicate_claim(db, claim_number, user, manual_rejection=None, remarks=""):
                     f"of {inr(limit)}; escalated to {approver['name']} ({approver['role']})")
             if claim["status"] == ESCALATED:
                 raise WorkflowError(note.replace("escalated to", "needs approval from"))
-            db.claims.update_one({"claim_number": claim_number}, {
+            _guarded_update(db, claim, {
                 "$set": {"status": ESCALATED, "assigned_to": approver["user_id"], "updated_at": now},
-                "$push": {"status_history": _history(ESCALATED, user, note, now)}})
+                "$push": {"status_history": _history(ESCALATED, user, note, now)}}, expected_version)
             audit.log(db, user, "CLAIM_ESCALATED", "claim", claim_number, f"{claim_number}: escalated",
                       {"payable": result["payable_amount"], "limit": limit, "to": approver["user_id"]})
             mark_changed()
@@ -200,8 +232,8 @@ def adjudicate_claim(db, claim_number, user, manual_rejection=None, remarks=""):
             sets["pre_auth.status"] = "Approved" if result["eligible"] else "Denied"
         note = (f"{decision} for {inr(result['payable_amount'])}" if result["eligible"]
                 else f"Rejected: {result['rejection_reason']}") + (f" - {remarks}" if remarks else "")
-        db.claims.update_one({"claim_number": claim_number},
-                             {"$set": sets, "$push": {"status_history": _history(decision, user, note, now)}})
+        _guarded_update(db, claim, {"$set": sets, "$push": {"status_history": _history(decision, user, note, now)}},
+                        expected_version)
         audit.log(db, user, "CLAIM_DECISION", "claim", claim_number, f"{claim_number}: {decision}",
                   {"payable": result["payable_amount"], "rejection_code": result["rejection_code"]})
         mark_changed()
@@ -211,85 +243,98 @@ def adjudicate_claim(db, claim_number, user, manual_rejection=None, remarks=""):
 # --------------------------------------------------------------------------- #
 # Settlement - multi-document ACID transaction
 # --------------------------------------------------------------------------- #
-def settle_claim(db, claim_number, user, simulate_failure=False):
+def settle_claim(db, claim_number, user, simulate_failure=False, expected_version=None):
     """Settle an approved claim atomically:
 
-    1. claims    - status -> Settled, payment details, status history
+    1. claims    - status -> Settled, payment details, status history (optimistic lock)
     2. policies  - utilised amount up, available cover down (guarded by $gte)
     3. payments  - new payment record (unique index on claim_number = no double pay)
     4. audit_logs- audit entry
 
-    Either all four writes happen or none do.
+    Either all four writes happen or none do. On a real replica set the body runs
+    inside session.with_transaction(), which retries automatically if a concurrent
+    transaction causes a write conflict.
     """
-    steps, now = [], datetime.now()
+    now = datetime.now()
     claim = get_claim(db, claim_number)
+    _lock_filter(claim, expected_version)
     policy_before = db.policies.find_one({"policy_number": claim["policy_number"]},
                                          {"available_cover": 1, "utilized_amount": 1})
     if claim["status"] not in AWAITING_PAYMENT:
         raise WorkflowError(f"Only Approved / Partially Approved claims can be settled (now '{claim['status']}')")
-    if user["role"] not in ("Admin", "Claims Manager", "Senior Claims Adjuster"):
+    if not auth.can(user, "claims.settle"):
         raise WorkflowError(f"A {user['role']} cannot release payments")
     payment_id = f"PAY-{now.year}-{next_id(db, 'payment'):06d}"
-    try:
-        with transaction(db) as tx:
-            steps.append(("Start transaction", "native MongoDB session (snapshot / majority)" if tx.native
-                          else "emulated: lock + before-images (mongomock)"))
-            claim = tx.find_one("claims", {"claim_number": claim_number})
-            policy = tx.find_one("policies", {"policy_number": claim["policy_number"]})
-            amount = claim["approved_amount"]
-            current_term = claim["admission_date"] >= policy["start_date"]
-            steps.append(("Read claim and policy",
-                          f"Approved {inr(amount)}; policy available cover {inr(policy['available_cover'])}"))
+    steps, retries = [], []
 
-            payee_type = "Hospital" if claim["claim_type"] == "Cashless" else "Member"
-            payee_name = claim["snapshot"]["hospital_name"] if payee_type == "Hospital" else claim["snapshot"]["member_name"]
-            utr = f"CSUR{now:%y%j}{random.randint(10000000, 99999999)}"
-            mode = "RTGS" if amount >= 200000 else "NEFT"
-            sets = {
-                "status": SETTLED, "settled_amount": amount, "settled_at": now, "updated_at": now,
-                "payment": {"payment_id": payment_id, "utr": utr, "mode": mode, "paid_at": now, "payee_type": payee_type},
-            }
-            if claim.get("submitted_at"):
-                sets["settlement_tat_days"] = round((now - claim["submitted_at"]).total_seconds() / 86400, 1)
-            res = tx.update_one("claims", {"claim_number": claim_number, "status": {"$in": AWAITING_PAYMENT}}, {
-                "$set": sets,
-                "$push": {"status_history": _history(SETTLED, user, f"Paid {inr(amount)} to {payee_type.lower()} via {mode} (UTR {utr})", now)}})
+    def body(tx):
+        steps.clear()
+        steps.append(("Start transaction", "native MongoDB session (snapshot / majority), auto-retry on write conflict"
+                      if tx.native else "emulated: lock + before-images (mongomock)"))
+        current = tx.find_one("claims", {"claim_number": claim_number})
+        policy = tx.find_one("policies", {"policy_number": current["policy_number"]})
+        amount = current["approved_amount"]
+        current_term = current["admission_date"] >= policy["start_date"]
+        steps.append(("Read claim and policy",
+                      f"Approved {inr(amount)}; policy available cover {inr(policy['available_cover'])}"))
+
+        payee_type = "Hospital" if current["claim_type"] == "Cashless" else "Member"
+        payee_name = current["snapshot"]["hospital_name"] if payee_type == "Hospital" else current["snapshot"]["member_name"]
+        utr = f"CSUR{now:%y%j}{random.randint(10000000, 99999999)}"
+        mode = "RTGS" if amount >= 200000 else "NEFT"
+        sets = {
+            "status": SETTLED, "settled_amount": amount, "settled_at": now, "updated_at": now,
+            "payment": {"payment_id": payment_id, "utr": utr, "mode": mode, "paid_at": now, "payee_type": payee_type},
+        }
+        if current.get("submitted_at"):
+            sets["settlement_tat_days"] = round((now - current["submitted_at"]).total_seconds() / 86400, 1)
+        flt = _lock_filter(current)
+        flt["status"] = {"$in": AWAITING_PAYMENT}
+        res = tx.update_one("claims", flt, {
+            "$set": sets, "$inc": {"version": 1},
+            "$push": {"status_history": _history(SETTLED, user, f"Paid {inr(amount)} to {payee_type.lower()} via {mode} (UTR {utr})", now)}})
+        if res.matched_count != 1:
+            raise ConcurrencyError("Claim was changed by another user; settlement aborted")
+        steps.append(("Update claim", f"{claim_number} → Settled (version {(current.get('version') or 0) + 1})"))
+
+        if current_term:
+            res = tx.update_one("policies",
+                                {"policy_number": policy["policy_number"], "available_cover": {"$gte": amount}},
+                                {"$inc": {"utilized_amount": amount, "available_cover": -amount},
+                                 "$set": {"updated_at": now}})
             if res.matched_count != 1:
-                raise WorkflowError("Claim was changed by another user; settlement aborted")
-            steps.append(("Update claim", f"{claim_number} → Settled"))
+                raise WorkflowError(f"Insufficient sum insured: available {inr(policy['available_cover'])}, "
+                                    f"required {inr(amount)}")
+            steps.append(("Deduct policy cover",
+                          f"{policy['policy_number']}: available {inr(policy['available_cover'])} → "
+                          f"{inr(policy['available_cover'] - amount)}"))
+        else:
+            steps.append(("Deduct policy cover", "Claim belongs to a previous policy year - current cover unchanged"))
 
-            if current_term:
-                res = tx.update_one("policies",
-                                    {"policy_number": policy["policy_number"], "available_cover": {"$gte": amount}},
-                                    {"$inc": {"utilized_amount": amount, "available_cover": -amount},
-                                     "$set": {"updated_at": now}})
-                if res.matched_count != 1:
-                    raise WorkflowError(f"Insufficient sum insured: available {inr(policy['available_cover'])}, "
-                                        f"required {inr(amount)}")
-                steps.append(("Deduct policy cover",
-                              f"{policy['policy_number']}: available {inr(policy['available_cover'])} → "
-                              f"{inr(policy['available_cover'] - amount)}"))
-            else:
-                steps.append(("Deduct policy cover", "Claim belongs to a previous policy year - current cover unchanged"))
+        if simulate_failure:
+            raise RuntimeError("Simulated failure: bank payment gateway timed out before the payment was recorded")
 
-            if simulate_failure:
-                raise RuntimeError("Simulated failure: bank payment gateway timed out before the payment was recorded")
+        tx.insert_one("payments", {
+            "payment_id": payment_id, "claim_number": claim_number, "policy_number": current["policy_number"],
+            "insurer_id": current["insurer_id"], "amount": amount,
+            "payee": {"type": payee_type, "name": payee_name, "bank": "Pragati Bank",
+                      "account_masked": f"XXXXXX{random.randint(1000, 9999)}", "ifsc": "PRGB0001234"},
+            "mode": mode, "utr": utr, "status": "Success", "initiated_by": user["user_id"],
+            "initiated_at": now, "paid_at": now,
+        })
+        steps.append(("Insert payment", f"{payment_id} for {inr(amount)} ({mode})"))
+        audit.log(db, user, "CLAIM_SETTLED", "claim", claim_number, f"{claim_number}: settled for {inr(amount)}",
+                  {"payment_id": payment_id, "utr": utr}, session=tx)
+        steps.append(("Write audit log", "CLAIM_SETTLED"))
 
-            tx.insert_one("payments", {
-                "payment_id": payment_id, "claim_number": claim_number, "policy_number": claim["policy_number"],
-                "insurer_id": claim["insurer_id"], "amount": amount,
-                "payee": {"type": payee_type, "name": payee_name, "bank": "Pragati Bank",
-                          "account_masked": f"XXXXXX{random.randint(1000, 9999)}", "ifsc": "PRGB0001234"},
-                "mode": mode, "utr": utr, "status": "Success", "initiated_by": user["user_id"],
-                "initiated_at": now, "paid_at": now,
-            })
-            steps.append(("Insert payment", f"{payment_id} for {inr(amount)} ({mode})"))
-            audit.log(db, user, "CLAIM_SETTLED", "claim", claim_number, f"{claim_number}: settled for {inr(amount)}",
-                      {"payment_id": payment_id, "utr": utr}, session=tx)
-            steps.append(("Write audit log", "CLAIM_SETTLED"))
+    try:
+        run_transaction(db, body, on_retry=lambda n: retries.append(n))
+        if retries:
+            steps.insert(1, ("Retry", f"Write conflict with a concurrent transaction; MongoDB retried "
+                                      f"{len(retries)} time(s)"))
         steps.append(("COMMIT", "All writes applied atomically"))
         mark_changed()
-        return {"committed": True, "steps": steps, "payment_id": payment_id}
+        return {"committed": True, "steps": steps, "payment_id": payment_id, "retries": len(retries)}
     except Exception as exc:
         after = db.policies.find_one({"policy_number": claim["policy_number"]}, {"available_cover": 1, "utilized_amount": 1})
         status_after = db.claims.find_one({"claim_number": claim_number}, {"status": 1})["status"]
@@ -300,6 +345,109 @@ def settle_claim(db, claim_number, user, simulate_failure=False):
         steps.append(("Verify", f"Claim status '{status_after}', available cover {inr(after['available_cover'])}, "
                                 f"payments for claim: {paid} → " + ("database unchanged" if unchanged else "CHECK DATA")))
         return {"committed": False, "steps": steps, "error": str(exc), "consistent": unchanged}
+
+
+# --------------------------------------------------------------------------- #
+# Re-verification - reopening a closed ("dead") case
+# --------------------------------------------------------------------------- #
+OUTCOMES = {
+    "uphold": "Original decision upheld",
+    "readjudicate": "Sent back for fresh adjudication",
+    "recovery": "Settlement flagged for recovery",
+}
+
+
+def reverification_outcomes(claim):
+    """What a verifier may conclude, depending on how the case was closed."""
+    origin = (claim.get("reverifications") or [{}])[-1].get("from_status")
+    out = ["uphold"]
+    if origin in (REJECTED, WITHDRAWN):
+        out.append("readjudicate")  # nothing was paid, so the claim can be decided again
+    if origin == SETTLED:
+        out.append("recovery")  # money has left; it can be recovered but never paid twice
+    return out
+
+
+def can_conclude_reverification(claim, user):
+    current = (claim.get("reverifications") or [{}])[-1]
+    return auth.can(user, "claims.conclude_reverification") or current.get("assigned_to") == user["user_id"]
+
+
+def reopen_claim(db, claim_number, user, reason, assign_to=None, expected_version=None):
+    """Head Admin only: bring a Settled / Rejected / Withdrawn claim back for re-verification."""
+    if not auth.can(user, "claims.reopen_closed"):
+        raise WorkflowError("Only the Head Admin can reopen a closed case for re-verification")
+    reason = (reason or "").strip()
+    if len(reason) < 10:
+        raise WorkflowError("Give the reason for re-verification (at least 10 characters)")
+    verifier = get_user(db, assign_to or user["user_id"])
+    if not verifier or not verifier.get("active"):
+        raise WorkflowError("Assign the case to an active staff member")
+    with write_lock:
+        claim = get_claim(db, claim_number)
+        _lock_filter(claim, expected_version)
+        old = claim["status"]
+        if old not in CLOSED_STATUSES:
+            raise WorkflowError(f"Only closed claims ({', '.join(CLOSED_STATUSES)}) can be reopened; "
+                                f"this one is '{old}'")
+        now = datetime.now()
+        entry = {"reopened_at": now, "reopened_by": user["user_id"], "reopened_by_name": user["name"],
+                 "reason": reason, "from_status": old, "assigned_to": verifier["user_id"],
+                 "outcome": None, "concluded_at": None, "concluded_by": None, "notes": None}
+        _guarded_update(db, claim, {
+            "$set": {"status": REVERIFICATION, "assigned_to": verifier["user_id"], "updated_at": now},
+            "$inc": {"reopen_count": 1},
+            "$push": {"status_history": _history(REVERIFICATION, user, f"Reopened from {old}: {reason}", now),
+                      "reverifications": entry}}, expected_version)
+        audit.log(db, user, "CLAIM_REOPENED", "claim", claim_number,
+                  f"{claim_number}: {old} → {REVERIFICATION} (assigned to {verifier['name']})",
+                  {"from": old, "reason": reason, "assigned_to": verifier["user_id"]})
+        mark_changed()
+    return verifier
+
+
+def complete_reverification(db, claim_number, user, outcome, notes, expected_version=None):
+    """Conclude a re-verification: uphold, re-adjudicate (unpaid claims) or flag recovery (paid claims)."""
+    notes = (notes or "").strip()
+    if len(notes) < 10:
+        raise WorkflowError("Record the verification findings (at least 10 characters)")
+    with write_lock:
+        claim = get_claim(db, claim_number)
+        _lock_filter(claim, expected_version)
+        if claim["status"] != REVERIFICATION:
+            raise WorkflowError(f"{claim_number} is not under re-verification")
+        if not can_conclude_reverification(claim, user):
+            raise WorkflowError("Only the assigned verifier, a Claims Manager or the Head Admin can conclude this")
+        if outcome not in reverification_outcomes(claim):
+            raise WorkflowError("That outcome is not allowed for this case")
+        idx = len(claim["reverifications"]) - 1
+        origin = claim["reverifications"][idx]["from_status"]
+        now = datetime.now()
+        new_status = UNDER_REVIEW if outcome == "readjudicate" else origin
+        sets = {"status": new_status, "updated_at": now,
+                f"reverifications.{idx}.outcome": OUTCOMES[outcome],
+                f"reverifications.{idx}.concluded_at": now,
+                f"reverifications.{idx}.concluded_by": user["user_id"],
+                f"reverifications.{idx}.notes": notes}
+        update = {"$set": sets,
+                  "$push": {"status_history": _history(new_status, user, f"{OUTCOMES[outcome]}: {notes}", now)}}
+        if outcome == "readjudicate":
+            sets.update(approved_amount=0, assigned_to=claim["reverifications"][idx]["assigned_to"])
+            if claim.get("adjudication"):
+                update["$push"]["previous_adjudications"] = claim["adjudication"]
+            update["$unset"] = {"adjudication": "", "decided_at": ""}
+        else:
+            sets["assigned_to"] = None
+        if outcome == "recovery":
+            sets["recovery"] = {"status": "Recovery Initiated", "amount": claim.get("settled_amount", 0),
+                                "reason": notes, "initiated_by": user["user_id"], "initiated_at": now}
+            if claim.get("fraud"):
+                sets["fraud.review_status"] = "Under Investigation"
+        _guarded_update(db, claim, update, expected_version)
+        audit.log(db, user, "REVERIFICATION_CONCLUDED", "claim", claim_number,
+                  f"{claim_number}: {OUTCOMES[outcome]} → {new_status}", {"outcome": outcome, "notes": notes})
+        mark_changed()
+    return new_status
 
 
 # --------------------------------------------------------------------------- #
@@ -426,7 +574,7 @@ def intimate_claim(db, form, user):
 def review_fraud(db, claim_number, user, decision, notes=""):
     if decision not in ("Cleared", "Under Investigation", "Confirmed Fraud"):
         raise WorkflowError("Invalid review decision")
-    if user["role"] not in ("Fraud Analyst", "Admin", "Claims Manager"):
+    if not auth.can(user, "claims.fraud_review"):
         raise WorkflowError(f"A {user['role']} cannot review fraud alerts")
     now = datetime.now()
     with write_lock:

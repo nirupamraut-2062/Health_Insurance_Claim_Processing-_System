@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in &middot; ClaimSure</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 4 7v8c0 7.5 5.1 13.4 12 15 6.9-1.6 12-7.5 12-15V7z' fill='%232563eb'/%3E%3Cpath d='M14 10h4v4h4v4h-4v4h-4v-4h-4v-4h4z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="auth-page">
+  <section class="auth-side">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 4 7v8c0 7.5 5.1 13.4 12 15 6.9-1.6 12-7.5 12-15V7z" fill="#2563eb"/><path d="M14 10h4v4h4v4h-4v4h-4v-4h-4v-4h4z" fill="#fff"/></svg>
+      <div><b>ClaimSure</b><span>Health Insurance Claims<br>&amp; Analytics</span></div>
+    </div>
+    <div>
+      <h1>Claim processing for the whole team, with the right authority for each role.</h1>
+      <p>Every sign-in, decision and payment is recorded in the audit log. What you can do depends on your access level.</p>
+      <ul class="auth-levels">
+        <li><span class="level l3">Head Admin</span><div><b>Full authority</b><span>Reopens closed cases for re-verification, manages staff accounts, resets and restores the database.</span></div></li>
+        <li><span class="level l2">Supervisor</span><div><b>Claims Managers</b><span>Approve up to &#8377;10 lakh, re-open appealed rejections, review fraud, read the audit log.</span></div></li>
+        <li><span class="level l1">Staff</span><div><b>Executives, adjusters, doctors, analysts</b><span>Work their queue within their role's approval limit.</span></div></li>
+      </ul>
+    </div>
+    <div class="small" style="color:#6f7f9d">All member, hospital and claim data in this system is synthetic.</div>
+  </section>
+
+  <section class="auth-form">
+    <form class="auth-card" method="post" action="/login" autocomplete="on">
+      <h2>Staff sign-in</h2>
+      <p class="muted" style="margin:0 0 20px">Use your work email or staff ID.</p>
+      {% if flash %}<div class="alert {{ flash.kind }}"><b>{{ flash.message }}</b></div>{% endif %}
+      {% if error %}<div class="alert error"><b>{{ error }}</b></div>{% endif %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="field">
+        <label for="identifier">Email or staff ID</label>
+        <input id="identifier" name="identifier" value="{{ identifier }}" placeholder="name@claimsure.example or USR001" autocomplete="username" required {{ 'autofocus' if not identifier }}>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required {{ 'autofocus' if identifier }}>
+      </div>
+      <button class="btn primary" style="margin-top:6px">Sign in</button>
+      <p class="auth-foot">Five wrong passwords lock the account for 15 minutes. Forgot your password? Ask the Head Admin to issue a temporary one.</p>
+    </form>
+  </section>
+</div>
+</body>
+</html>

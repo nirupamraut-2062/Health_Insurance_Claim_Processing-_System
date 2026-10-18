@@ -85,5 +85,5 @@ const CS = (() => {
 const STATUS_COLOR_HEX = {
   "Intimated": "#475569", "Documents Pending": "#d97706", "Under Review": "#2563eb", "Query Raised": "#ea580c",
   "Escalated": "#7c3aed", "Approved": "#0d9488", "Partially Approved": "#0891b2", "Rejected": "#dc2626",
-  "Settled": "#059669", "Withdrawn": "#9ca3af",
+  "Settled": "#059669", "Withdrawn": "#9ca3af", "Re-verification": "#db2777",
 };

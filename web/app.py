@@ -14,7 +14,7 @@ import threading
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
@@ -26,22 +26,24 @@ from fastapi import FastAPI, Form, Request  # noqa: E402
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from fastapi.templating import Jinja2Templates  # noqa: E402
+from starlette.concurrency import run_in_threadpool  # noqa: E402
 
 from claimsure import APP_NAME, APP_TAGLINE, VERSION, analytics, indexes, services  # noqa: E402
+from claimsure import auth, benchmark, concurrency, livefeed, maintenance, security  # noqa: E402
+from claimsure.auth import AuthError, PermissionDenied  # noqa: E402
 from claimsure.constants import (  # noqa: E402
     CLAIM_STATUSES, OPEN_STATUSES, AWAITING_PAYMENT, STATUS_COLORS, CLAIM_TYPES, ADMISSION_TYPES,
     ROOM_CATEGORIES, ROOM_TARIFF, BILL_HEADS, REJECTION_REASONS, MANUAL_REJECTION_CODES, GRIEVANCE_CATEGORIES,
     GRIEVANCE_CHANNELS, GRIEVANCE_STATUSES, POLICY_STATUSES, POLICY_TYPES,
 )
-from claimsure.db import get_db, ensure_seeded, is_mock, server_info, write_lock  # noqa: E402
-from claimsure.schema import VALIDATORS, ValidationError, validate  # noqa: E402
+from claimsure.db import ANALYST_URI, get_db, ensure_seeded, is_mock, server_info, write_lock  # noqa: E402
+from claimsure.schema import VALIDATORS, ValidationError, sync_validators, validate  # noqa: E402
 from claimsure.seed import COLLECTIONS, seed  # noqa: E402
-from claimsure.services import WorkflowError  # noqa: E402
+from claimsure.services import WorkflowError, ConcurrencyError  # noqa: E402
 from claimsure.utils import inr, inr_short, fmt_date, age_on, to_jsonable  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PER_PAGE = 25
-DEFAULT_USER = "USR003"
 
 
 def _warm_cache():
@@ -57,11 +59,76 @@ def _warm_cache():
 @asynccontextmanager
 async def lifespan(_app):
     ensure_seeded(get_db(), verbose=True)
+    if not is_mock():
+        try:  # pick up schema changes (e.g. a new claim status) on an existing database
+            changed = sync_validators(get_db())
+            if changed:
+                print(f"  [OK] validators updated on the server: {', '.join(changed)}")
+        except Exception as exc:  # the app user may lack collMod; the app still works
+            print(f"  [!] could not sync validators: {exc}")
+    setup = auth.ensure_setup(get_db())
+    if setup["created"]:
+        print(f"  [OK] sign-in credentials created for {setup['created']} staff accounts")
+        for group, password in setup["generated"].items():
+            print(f"  [!] {group} initial password (shown once, set CLAIMSURE_{'ADMIN' if group == 'Head Admin' else 'STAFF'}"
+                  f"_PASSWORD to choose your own): {password}")
+    renewed = maintenance.renew_due_policies(get_db())  # nightly batch job, also run at start-up
+    if renewed["renewed"]:
+        print(f"  [OK] auto-renewed {renewed['renewed']} policies whose term had ended")
     threading.Thread(target=_warm_cache, daemon=True).start()
     yield
 
 
 app = FastAPI(title=f"{APP_NAME} - {APP_TAGLINE}", version=VERSION, lifespan=lifespan)
+
+PUBLIC_PREFIXES = ("/login", "/static/", "/health")
+PASSWORD_CHANGE_PATHS = ("/account", "/account/password", "/logout")
+SECURITY_HEADERS = [(b"x-frame-options", b"DENY"), (b"x-content-type-options", b"nosniff"),
+                    (b"referrer-policy", b"same-origin")]
+
+
+class LoginRequired:
+    """Every page except the sign-in page needs a valid session.
+
+    A plain ASGI middleware (not BaseHTTPMiddleware) so streamed responses such as
+    the change-stream live feed pass through untouched. The signed-in user is
+    resolved once per request and stored in request.state.user.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        async def send_secure(message):
+            if message["type"] == "http.response.start":
+                message["headers"] = list(message.get("headers", [])) + SECURITY_HEADERS
+            await send(message)
+
+        path = scope["path"]
+        if not path.startswith(PUBLIC_PREFIXES):
+            request = Request(scope)
+            user = await run_in_threadpool(auth.session_user, get_db(), request.cookies.get(auth.SESSION_COOKIE))
+            if user is None:
+                if path.startswith("/api/"):
+                    response = JSONResponse({"detail": "Sign in required"}, status_code=401)
+                else:
+                    query = scope.get("query_string", b"").decode()
+                    target = path + (f"?{query}" if query else "")
+                    response = RedirectResponse("/login" + ("" if path == "/" else "?" + urlencode({"next": target})),
+                                                status_code=303)
+                return await response(scope, receive, send_secure)
+            scope.setdefault("state", {})["user"] = user
+            if user["must_change_password"] and path not in PASSWORD_CHANGE_PATHS:
+                response = redirect("/account", "Your password was reset by the Head Admin. Choose a new password "
+                                                "to continue.", "warning")
+                return await response(scope, receive, send_secure)
+        await self.app(scope, receive, send_secure)
+
+
+app.add_middleware(LoginRequired)
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(HERE, "templates"))
 env = templates.env
@@ -84,8 +151,7 @@ def db():
 
 
 def current_user(request):
-    uid = request.cookies.get("cs_user", DEFAULT_USER)
-    return services.get_user(db(), uid) or services.get_user(db(), DEFAULT_USER)
+    return request.state.user
 
 
 def _encode(data):
@@ -99,21 +165,40 @@ def redirect(url, message=None, kind="success", steps=None):
     return resp
 
 
-def render(request, template, active="", **ctx):
-    flash = None
+def _flash(request):
     raw = request.cookies.get("cs_flash")
     if raw:
         try:
-            flash = json.loads(base64.urlsafe_b64decode(raw.encode()))
+            return json.loads(base64.urlsafe_b64decode(raw.encode()))
         except Exception:
-            flash = None
+            return None
+    return None
+
+
+def render(request, template, active="", status_code=200, **ctx):
+    flash = _flash(request)
     user = current_user(request)
     ctx.update(request=request, user=user, active=active, flash=flash, mock=is_mock(),
-               users=list(db().users.find({"active": True}, {"_id": 0}).sort("user_id", 1)))
-    resp = templates.TemplateResponse(request=request, name=template, context=ctx)
+               perms=set(auth.permissions_of(user)), level=auth.level_name(user))
+    resp = templates.TemplateResponse(request=request, name=template, context=ctx, status_code=status_code)
     if flash:
         resp.delete_cookie("cs_flash")
     return resp
+
+
+def _back(request, default="/"):
+    """Same-site path the user came from (for redirects after a refused action)."""
+    ref = urlparse(request.headers.get("referer", ""))
+    if ref.netloc and ref.netloc != request.url.netloc:
+        return default
+    return (ref.path + (f"?{ref.query}" if ref.query else "")) if ref.path.startswith("/") else default
+
+
+@app.exception_handler(PermissionDenied)
+def permission_denied(request: Request, exc: PermissionDenied):
+    if request.method == "GET":
+        return render(request, "error.html", "", status_code=403, message="Access denied", detail=str(exc))
+    return redirect(_back(request), str(exc), "error")
 
 
 def paginate(request, total, page):
@@ -164,8 +249,10 @@ def dashboard(request: Request):
                   .sort("fraud.score", -1).limit(6))
     awaiting = list(d.claims.find({"status": {"$in": AWAITING_PAYMENT}}, list_fields)
                     .sort("approved_amount", -1).limit(6))
+    reverifying = list(d.claims.find({"status": "Re-verification"}, list_fields).sort("updated_at", -1).limit(6))
     return render(request, "dashboard.html", "dashboard", k=k, recent=recent, my_queue=my_queue, alerts=alerts,
-                  awaiting=awaiting, open_grievances=d.grievances.count_documents({"status": {"$in": ["Open", "In Progress"]}}))
+                  awaiting=awaiting, reverifying=reverifying,
+                  open_grievances=d.grievances.count_documents({"status": {"$in": ["Open", "In Progress"]}}))
 
 
 # --------------------------------------------------------------------------- #
@@ -318,12 +405,22 @@ def claim_detail(request: Request, claim_number: str):
                   grievances=grievances, audit_log=audit_log, bill_heads=BILL_HEADS,
                   manual_reasons={k: REJECTION_REASONS[k] for k in MANUAL_REJECTION_CODES},
                   grievance_categories=GRIEVANCE_CATEGORIES, grievance_channels=GRIEVANCE_CHANNELS,
-                  staff=users_by_id(), member_age=age_on(member["dob"]) if member else None)
+                  staff=users_by_id(), member_age=age_on(member["dob"]) if member else None,
+                  outcome_labels=services.OUTCOMES,
+                  verifiers=list(d.users.find({"active": True, "role": {"$ne": "Claims Executive"}},
+                                              {"_id": 0, "user_id": 1, "name": 1, "role": 1}).sort("user_id", 1)))
+
+
+def _ver(value):
+    """Version of the claim the user was looking at (optimistic locking)."""
+    return int(value) if str(value).strip().isdigit() else None
 
 
 def _claim_action(request, claim_number, fn, success):
     try:
         out = fn(current_user(request))
+    except ConcurrencyError as exc:
+        return redirect(f"/claims/{claim_number}", "Optimistic lock: " + str(exc), "warning")
     except (WorkflowError, ValidationError) as exc:
         return redirect(f"/claims/{claim_number}", str(exc), "error")
     if isinstance(out, dict) and "steps" in out:
@@ -337,23 +434,43 @@ def _claim_action(request, claim_number, fn, success):
 
 
 @app.post("/claims/{claim_number}/status")
-def claim_status(request: Request, claim_number: str, new_status: str = Form(...), remarks: str = Form("")):
+def claim_status(request: Request, claim_number: str, new_status: str = Form(...), remarks: str = Form(""),
+                 version: str = Form("")):
     return _claim_action(request, claim_number,
-                         lambda u: services.change_status(db(), claim_number, new_status, u, remarks),
+                         lambda u: services.change_status(db(), claim_number, new_status, u, remarks, _ver(version)),
                          f"Claim moved to {new_status}")
 
 
 @app.post("/claims/{claim_number}/adjudicate")
-def claim_adjudicate(request: Request, claim_number: str, manual_rejection: str = Form(""), remarks: str = Form("")):
+def claim_adjudicate(request: Request, claim_number: str, manual_rejection: str = Form(""), remarks: str = Form(""),
+                     version: str = Form("")):
     return _claim_action(request, claim_number,
-                         lambda u: services.adjudicate_claim(db(), claim_number, u, manual_rejection or None, remarks),
+                         lambda u: services.adjudicate_claim(db(), claim_number, u, manual_rejection or None, remarks,
+                                                             _ver(version)),
                          "Decision recorded")
 
 
 @app.post("/claims/{claim_number}/settle")
-def claim_settle(request: Request, claim_number: str, simulate_failure: str = Form("")):
+def claim_settle(request: Request, claim_number: str, simulate_failure: str = Form(""), version: str = Form("")):
     return _claim_action(request, claim_number,
-                         lambda u: services.settle_claim(db(), claim_number, u, simulate_failure == "1"), "")
+                         lambda u: services.settle_claim(db(), claim_number, u, simulate_failure == "1", _ver(version)), "")
+
+
+@app.post("/claims/{claim_number}/reopen")
+def claim_reopen(request: Request, claim_number: str, reason: str = Form(""), assign_to: str = Form(""),
+                 version: str = Form("")):
+    auth.require(current_user(request), "claims.reopen_closed")
+    return _claim_action(request, claim_number,
+                         lambda u: services.reopen_claim(db(), claim_number, u, reason, assign_to or None, _ver(version)),
+                         "Case reopened for re-verification")
+
+
+@app.post("/claims/{claim_number}/reverify")
+def claim_reverify(request: Request, claim_number: str, outcome: str = Form(""), notes: str = Form(""),
+                   version: str = Form("")):
+    return _claim_action(request, claim_number,
+                         lambda u: services.complete_reverification(db(), claim_number, u, outcome, notes, _ver(version)),
+                         f"Re-verification concluded: {services.OUTCOMES.get(outcome, outcome)}")
 
 
 @app.post("/claims/{claim_number}/fraud-review")
@@ -586,6 +703,7 @@ def fraud_page(request: Request, page: int = 1):
 
 @app.post("/fraud/scan")
 def fraud_scan(request: Request):
+    auth.require(current_user(request), "fraud.scan")
     counts = services.rescan_fraud(db(), current_user(request))
     return redirect("/fraud", f"Fraud rules re-run on open claims: {counts.get('High', 0)} high, "
                               f"{counts.get('Medium', 0)} medium, {counts.get('Low', 0)} low risk.")
@@ -618,6 +736,7 @@ def grievance_update(request: Request, grievance_id: str, status: str = Form(...
 
 @app.get("/audit", response_class=HTMLResponse)
 def audit_page(request: Request, page: int = 1):
+    auth.require(current_user(request), "audit.view")
     d = db()
     p = request.query_params
     q = {}
@@ -743,6 +862,22 @@ EXAMPLE_QUERIES = [
 BLOCKED_STAGES = ("$out", "$merge")
 
 
+def _foreign_collections(node):
+    """Collections a pipeline reads besides its own ($lookup / $graphLookup / $unionWith)."""
+    found = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in ("$lookup", "$graphLookup") and isinstance(value, dict):
+                found.append(value.get("from"))
+            elif key == "$unionWith":
+                found.append(value if isinstance(value, str) else (value or {}).get("coll"))
+            found += _foreign_collections(value)
+    elif isinstance(node, list):
+        for item in node:
+            found += _foreign_collections(item)
+    return found
+
+
 @app.get("/database/query", response_class=HTMLResponse)
 @app.post("/database/query", response_class=HTMLResponse)
 async def database_query(request: Request):
@@ -766,6 +901,9 @@ async def database_query(request: Request):
                         raise ValueError("An aggregation must be a JSON array of stages")
                     if any(k in stage for stage in parsed for k in BLOCKED_STAGES):
                         raise ValueError("$out / $merge are disabled - the playground is read-only")
+                    if any(c not in COLLECTIONS for c in _foreign_collections(parsed)):
+                        raise ValueError("Lookups are limited to the 14 business collections "
+                                         "(credentials and sessions are private)")
                     result = list(d[coll].aggregate(parsed + [{"$limit": limit}]))
                     count = len(result)
                 else:
@@ -785,9 +923,7 @@ async def database_query(request: Request):
 
 @app.post("/database/reseed")
 def database_reseed(request: Request):
-    user = current_user(request)
-    if user["role"] != "Admin":
-        return redirect("/database", "Only an Admin can reset the database (switch user to Ananya Rao).", "error")
+    auth.require(current_user(request), "db.reset")
     with write_lock:
         out = seed(db(), verbose=False)
         analytics.clear_cache()
@@ -795,16 +931,243 @@ def database_reseed(request: Request):
     return redirect("/database", f"Database reset: {out['total']:,} documents reloaded in {out['seconds']:.1f}s.")
 
 
-@app.post("/switch-user")
-def switch_user(request: Request, user_id: str = Form(...), back: str = Form("/")):
-    resp = redirect(back if back.startswith("/") else "/")
-    resp.set_cookie("cs_user", user_id, max_age=60 * 60 * 24 * 30)
+# --------------------------------------------------------------------------- #
+# Sign-in, account and staff administration
+# --------------------------------------------------------------------------- #
+def _safe_next(target):
+    return target if target and target.startswith("/") and not target.startswith("//") else "/"
+
+
+def _client_ip(request):
+    return request.client.host if request.client else "unknown"
+
+
+def _login_page(request, error=None, identifier="", next_url="/", status_code=200):
+    flash = _flash(request)
+    resp = templates.TemplateResponse(request=request, name="login.html", status_code=status_code, context={
+        "request": request, "error": error, "identifier": identifier, "next": next_url, "flash": flash,
+        "mock": is_mock()})
+    if flash:
+        resp.delete_cookie("cs_flash")
     return resp
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request, next: str = "/"):
+    if auth.session_user(db(), request.cookies.get(auth.SESSION_COOKIE)):
+        return RedirectResponse(_safe_next(next), status_code=303)
+    return _login_page(request, next_url=_safe_next(next))
+
+
+@app.post("/login", response_class=HTMLResponse)
+def login_submit(request: Request, identifier: str = Form(""), password: str = Form(""), next: str = Form("/")):
+    try:
+        token, user, must_change = auth.authenticate(db(), identifier, password, _client_ip(request),
+                                                     request.headers.get("user-agent", ""))
+    except AuthError as exc:
+        return _login_page(request, str(exc), identifier, _safe_next(next), status_code=401)
+    target = "/account" if must_change else _safe_next(next)
+    resp = redirect(target, f"Welcome, {user['name']}. Signed in as {user['role']} ({auth.level_name(user)}).")
+    resp.set_cookie(auth.SESSION_COOKIE, token, max_age=auth.SESSION_HOURS * 3600, httponly=True, samesite="lax",
+                    secure=request.url.scheme == "https", path="/")
+    return resp
+
+
+@app.post("/logout")
+def logout(request: Request):
+    auth.logout(db(), request.cookies.get(auth.SESSION_COOKIE), current_user(request))
+    resp = redirect("/login", "You have been signed out.", "info")
+    resp.delete_cookie(auth.SESSION_COOKIE, path="/")
+    return resp
+
+
+@app.get("/account", response_class=HTMLResponse)
+def account_page(request: Request):
+    user = current_user(request)
+    return render(request, "account.html", "account", sessions=auth.my_sessions(db(), user["user_id"]),
+                  matrix=auth.permission_matrix(), min_password=auth.MIN_PASSWORD,
+                  history=list(db().audit_logs.find({"entity_type": "user", "entity_id": user["user_id"]},
+                                                    {"_id": 0}).sort("timestamp", -1).limit(10)))
+
+
+@app.post("/account/password")
+def account_password(request: Request, current: str = Form(""), new: str = Form(""), confirm: str = Form("")):
+    user = current_user(request)
+    try:
+        if new != confirm:
+            raise AuthError("The new passwords do not match")
+        ended = auth.change_password(db(), user, current, new, request.cookies.get(auth.SESSION_COOKIE))
+    except AuthError as exc:
+        return redirect("/account", str(exc), "error")
+    return redirect("/", "Password changed." + (f" {ended} other session(s) were signed out." if ended else ""))
+
+
+def _staff_page(request, issued=None, error=None):
+    auth.require(current_user(request), "staff.manage")
+    d = db()
+    staff = auth.staff_overview(d)
+    since = datetime.now() - timedelta(days=1)
+    events = list(d.audit_logs.find({"entity_type": "user"}, {"_id": 0}).sort("timestamp", -1).limit(15))
+    return render(request, "staff.html", "staff", staff=staff, roles=auth.ALL_ROLES, regions=auth.REGIONS,
+                  matrix=auth.permission_matrix(), level_of=auth.level_name, issued=issued, error=error,
+                  events=events, logins_24h=d.audit_logs.count_documents({"action": "LOGIN", "timestamp": {"$gte": since}}),
+                  failed_24h=d.audit_logs.count_documents({"action": "LOGIN_FAILED", "timestamp": {"$gte": since}}))
+
+
+@app.get("/admin/staff", response_class=HTMLResponse)
+def staff_page(request: Request):
+    return _staff_page(request)
+
+
+@app.post("/admin/staff/create", response_class=HTMLResponse)
+def staff_create(request: Request, name: str = Form(""), email: str = Form(""), role: str = Form(""),
+                 region: str = Form("")):
+    try:
+        user, password = auth.create_staff(db(), current_user(request), name, email, role, region)
+    except (AuthError, ValidationError) as exc:
+        return _staff_page(request, error=str(exc))
+    return _staff_page(request, issued={"user": user, "password": password, "new": True})
+
+
+@app.post("/admin/staff/{user_id}/{action}", response_class=HTMLResponse)
+def staff_action(request: Request, user_id: str, action: str, role: str = Form(""), region: str = Form("")):
+    admin = current_user(request)
+    try:
+        if action == "update":
+            target, summary = auth.update_staff(db(), admin, user_id, role=role or None, region=region or None)
+            return redirect("/admin/staff", f"{target['name']}: {summary}")
+        if action in ("activate", "deactivate"):
+            target, summary = auth.update_staff(db(), admin, user_id, active=action == "activate")
+            return redirect("/admin/staff", f"{target['name']}: {summary}")
+        if action == "reset-password":
+            target, password = auth.reset_password(db(), admin, user_id)
+            return _staff_page(request, issued={"user": target, "password": password, "new": False})
+        if action == "unlock":
+            target = auth.unlock(db(), admin, user_id)
+            return redirect("/admin/staff", f"{target['name']} unlocked")
+        if action == "sign-out":
+            target, n = auth.revoke_sessions(db(), admin, user_id)
+            return redirect("/admin/staff", f"{target['name']} signed out of {n} session(s)")
+    except AuthError as exc:
+        return redirect("/admin/staff", str(exc), "error")
+    return redirect("/admin/staff", "Unknown action", "error")
+
+
+# --------------------------------------------------------------------------- #
+# Database labs: concurrency, scale, security, live feed, maintenance
+# --------------------------------------------------------------------------- #
+@app.get("/database/concurrency", response_class=HTMLResponse)
+def concurrency_page(request: Request):
+    return render(request, "concurrency.html", "concurrency", results=None, amounts=concurrency)
+
+
+@app.post("/database/concurrency", response_class=HTMLResponse)
+def concurrency_run(request: Request):
+    auth.require(current_user(request), "db.labs")
+    return render(request, "concurrency.html", "concurrency", results=concurrency.run_lab(db()), amounts=concurrency)
+
+
+@app.get("/database/scale", response_class=HTMLResponse)
+def scale_page(request: Request):
+    latest = None if is_mock() else benchmark.latest(db())
+    return render(request, "scale.html", "scale", latest=latest, state=benchmark.state, indexes_def=benchmark.INDEXES)
+
+
+@app.post("/database/scale")
+def scale_run(request: Request, n: int = Form(100000)):
+    auth.require(current_user(request), "db.benchmark")
+    if is_mock():
+        return redirect("/database/scale", "The scale benchmark needs a real MongoDB server (set CLAIMSURE_MONGO_URI).", "error")
+    n = min(max(n, 1000), 200000)
+    started = benchmark.run_in_background(db(), n)
+    return redirect("/database/scale", f"Benchmark started on {n:,} documents - this page refreshes until it finishes."
+                    if started else "A benchmark is already running.", "info" if started else "warning")
+
+
+@app.get("/api/bench/status")
+def bench_status():
+    return JSONResponse(dict(benchmark.state))
+
+
+@app.get("/database/security", response_class=HTMLResponse)
+def security_page(request: Request):
+    return render(request, "security.html", "security", me=security.whoami(db()), roles=security.ROLE_DESIGN,
+                  demo=None, analyst=bool(ANALYST_URI), server_engine=server_info(db())["engine"])
+
+
+@app.post("/database/security", response_class=HTMLResponse)
+def security_run(request: Request):
+    auth.require(current_user(request), "db.labs")
+    return render(request, "security.html", "security", me=security.whoami(db()), roles=security.ROLE_DESIGN,
+                  demo=security.analyst_demo(), analyst=bool(ANALYST_URI), server_engine=server_info(db())["engine"])
+
+
+@app.get("/database/live", response_class=HTMLResponse)
+def live_page(request: Request):
+    return render(request, "live.html", "live", watched=livefeed.WATCHED, pipeline=livefeed.PIPELINE)
+
+
+@app.get("/api/live")
+def live_stream():
+    return StreamingResponse(livefeed.sse(db()), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.get("/database/maintenance", response_class=HTMLResponse)
+def maintenance_page(request: Request):
+    d = db()
+    names = set(d.list_collection_names())
+    views = [{"name": k, **{x: v[x] for x in ("on", "purpose", "pipeline")}, "exists": k in names,
+              "sample": maintenance.view_sample(d, k, 3)} for k, v in maintenance.VIEWS.items()]
+    mv = d[maintenance.MV_NAME].find_one(sort=[("refreshed_at", -1)]) if maintenance.MV_NAME in names else None
+    return render(request, "maintenance.html", "maintenance", versions=maintenance.schema_versions(d),
+                  current=maintenance.CURRENT_SCHEMA, migrations=maintenance.MIGRATIONS, views=views,
+                  mv=mv, mv_rows=d[maintenance.MV_NAME].count_documents({}) if mv else 0,
+                  mv_pipeline=maintenance.MV_PIPELINE, backups=maintenance.list_backups(),
+                  due=d.policies.count_documents({"status": "Active", "end_date": {"$lt": datetime.now()}}),
+                  last_renewal=d.audit_logs.find_one({"action": "POLICY_RENEWED"}, sort=[("timestamp", -1)]))
+
+
+@app.post("/database/maintenance/{job}")
+def maintenance_run(request: Request, job: str, name: str = Form("")):
+    d, user = db(), current_user(request)
+    auth.require(user, "db.reset" if job == "restore" else "db.maintenance")
+    try:
+        if job == "renew":
+            r = maintenance.renew_due_policies(d, user=user)
+            msg = f"Renewal batch: {r['renewed']} of {r['due']} due policies renewed in one bulk write ({r['ms']} ms)."
+        elif job == "migrate":
+            r = maintenance.migrate_schema(d)
+            msg = f"Migration to schema v{maintenance.CURRENT_SCHEMA}: {r['migrated']:,} claims upgraded ({r['ms']} ms). Versions now {r['versions']}."
+        elif job == "views":
+            r = maintenance.create_views(d)
+            msg = f"Views created: {', '.join(r['created'])}" if r["created"] else r["note"]
+        elif job == "mv":
+            r = maintenance.refresh_materialized(d)
+            c = maintenance.compare_materialized(d)
+            msg = (f"{maintenance.MV_NAME} rebuilt with {r['stage']}: {r['rows']} rows in {r['build_ms']} ms. "
+                   f"Same question: {c['live_ms']} ms live vs {c['mv_ms']} ms from the view.")
+        elif job == "backup":
+            r = maintenance.backup(d)
+            msg = f"Backup written to backups/{os.path.basename(r['folder'])}: {sum(r['collections'].values()):,} documents in {r['seconds']} s."
+        elif job == "restore":
+            r = maintenance.restore(d, name)
+            auth.ensure_setup(d)
+            msg = f"Restored {r['restored']:,} documents from the backup taken {r['from']} ({r['seconds']} s)."
+        else:
+            return redirect("/database/maintenance", "Unknown job", "error")
+    except Exception as exc:
+        return redirect("/database/maintenance", f"{job} failed: {exc}", "error")
+    analytics.clear_cache()
+    services.mark_changed()
+    return redirect("/database/maintenance", msg)
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", **server_info(db())}
+    """Public liveness check (used by the hosting platform); reveals no server details."""
+    db().command("ping")
+    return {"status": "ok", "mode": "mock" if is_mock() else "mongodb"}
 
 
 if __name__ == "__main__":

@@ -114,3 +114,17 @@ def apply_validators(db):
             db.create_collection(name, **options)
         applied.append(name)
     return applied
+
+
+def sync_validators(db):
+    """Re-apply (collMod) only the validators that differ from schema/validators.json.
+    Run at start-up so a deployed database picks up schema changes, e.g. a new status."""
+    current = {c["name"]: c.get("options", {}).get("validator", {}).get("$jsonSchema")
+               for c in db.list_collections()}
+    changed = []
+    for name, schema in VALIDATORS.items():
+        if name in current and current[name] != schema:
+            db.command("collMod", name, validator={"$jsonSchema": schema},
+                       validationLevel="strict", validationAction="error")
+            changed.append(name)
+    return changed

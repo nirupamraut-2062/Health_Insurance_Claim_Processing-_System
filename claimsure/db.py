@@ -8,13 +8,41 @@ ClaimSure runs in one of two modes:
   any laptop with no database installed. Data is re-seeded on every start.
 
 Everything else in the code base is identical in both modes.
+
+Settings come from environment variables or from a ``.env`` file in the
+project folder (never committed - it holds the database password):
+
+    CLAIMSURE_MONGO_URI    connection string of the application user
+    CLAIMSURE_ANALYST_URI  connection string of a read-only user (security demo)
+    CLAIMSURE_MODE=mock    force the in-memory mock even when a URI is set
 """
 import os
 import threading
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _load_env_file(path=os.path.join(ROOT, ".env")):
+    """Minimal .env reader: KEY=VALUE lines; real environment variables win."""
+    if not os.path.exists(path):
+        return
+    with open(path, encoding="utf-8-sig") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key, value = key.strip(), value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+_load_env_file()
+
 DB_NAME = os.environ.get("CLAIMSURE_DB", "claimsure")
 MONGO_URI = os.environ.get("CLAIMSURE_MONGO_URI") or os.environ.get("MONGO_URI")
-MODE = "mongodb" if MONGO_URI else "mock"
+ANALYST_URI = os.environ.get("CLAIMSURE_ANALYST_URI")
+MODE = "mongodb" if MONGO_URI and os.environ.get("CLAIMSURE_MODE", "").lower() != "mock" else "mock"
 
 _client = None
 _lock = threading.Lock()
@@ -60,6 +88,9 @@ def server_info(db=None):
                 "transactions": "emulated", "validation": "application-level", "replica_set": False}
     info = db.client.server_info()
     hello = db.command("hello")
-    return {"mode": "mongodb", "engine": f"MongoDB {info.get('version')}", "database": DB_NAME,
+    hosts = hello.get("hosts") or []
+    atlas = any(".mongodb.net" in h for h in hosts)
+    return {"mode": "mongodb", "engine": f"MongoDB {info.get('version')}" + (" (Atlas)" if atlas else ""),
+            "database": DB_NAME, "atlas": atlas, "hosts": hosts, "set_name": hello.get("setName"),
             "transactions": "native" if hello.get("setName") else "unavailable (needs replica set)",
             "validation": "$jsonSchema (server)", "replica_set": bool(hello.get("setName"))}

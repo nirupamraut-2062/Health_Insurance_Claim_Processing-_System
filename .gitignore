@@ -64,3 +64,9 @@ Thumbs.db
 
 # Local MongoDB data directory
 mongo-data/
+
+# Logical backups made by python main.py backup
+backups/
+
+# Atlas credential file
+atlas-credentials.env

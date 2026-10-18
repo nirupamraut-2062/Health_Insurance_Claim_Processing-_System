@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Staff &amp; access{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Staff &amp; access</h1>
+    <p>Head Admin only. Accounts, access levels, passwords and sessions for every staff member.</p>
+  </div>
+</div>
+
+{% if error %}<div class="alert error"><b>{{ error }}</b></div>{% endif %}
+{% if issued %}
+<div class="alert warning">
+  <b>{{ 'Account created for' if issued.new else 'Temporary password for' }} {{ issued.user.name }} ({{ issued.user.user_id }}, {{ issued.user.email }})</b>
+  <div style="margin:10px 0"><span class="secret">{{ issued.password }}</span></div>
+  Give it to them in person or over the phone. It is shown only once and must be changed at their next sign-in. All their existing sessions have been ended.
+</div>
+{% endif %}
+
+<div class="grid g4">
+  {{ m.kpi("Staff accounts", staff|length, (staff|selectattr('active')|list|length) ~ " active", "accent") }}
+  {{ m.kpi("Signed in now", staff|sum(attribute='sessions'), "open sessions across all staff", "purple") }}
+  {{ m.kpi("Sign-ins (24 h)", logins_24h, failed_24h ~ " failed attempts", "teal") }}
+  {{ m.kpi("Locked accounts", staff|selectattr('locked')|list|length, "after 5 wrong passwords, for 15 minutes", "red") }}
+</div>
+
+<div class="card mt">
+  <div class="card-head"><div><h2>Staff accounts</h2><p>Changing a role or deactivating an account signs that person out at once</p></div></div>
+  <div class="card-body flush table-wrap"><table class="data">
+    <thead><tr><th>Staff member</th><th>Role &amp; region</th><th>Access</th><th>Status</th><th>Last sign-in</th><th class="right">Actions</th></tr></thead>
+    <tbody>
+    {% for s in staff %}
+      <tr>
+        <td><b>{{ s.name }}</b><div class="sub"><span class="mono">{{ s.user_id }}</span> &middot; {{ s.email }}</div></td>
+        <td>
+          <form method="post" action="/admin/staff/{{ s.user_id }}/update" class="btn-row" style="flex-wrap:nowrap">
+            <select name="role" style="max-width:190px">{% for r in roles %}<option {{ 'selected' if r == s.role }}>{{ r }}</option>{% endfor %}</select>
+            <select name="region">{% for r in regions %}<option {{ 'selected' if r == s.region }}>{{ r }}</option>{% endfor %}</select>
+            <button class="btn sm">Save</button>
+          </form>
+          <div class="sub">Limit {{ s.approval_limit|inr }}</div>
+        </td>
+        <td><span class="level l{{ {'Head Admin': 3, 'Supervisor': 2}.get(s.level, 1) }}">{{ s.level }}</span></td>
+        <td>
+          {% if not s.active %}{{ m.pill('Inactive', 'gray') }}{% elif s.locked %}{{ m.pill('Locked', 'red') }}{% else %}{{ m.pill('Active', 'green') }}{% endif %}
+          {% if s.must_change %}<div class="sub">temporary password</div>{% endif %}
+          {% if s.sessions %}<div class="sub">{{ s.sessions }} session(s) open</div>{% endif %}
+        </td>
+        <td class="small">{{ s.last_login_at|datetime if s.last_login_at else 'Never' }}</td>
+        <td class="right">
+          <div class="btn-row" style="justify-content:flex-end">
+            <form method="post" action="/admin/staff/{{ s.user_id }}/reset-password" onsubmit="return confirm('Issue a temporary password to {{ s.name }}? Their current password stops working.')"><button class="btn sm">Reset password</button></form>
+            {% if s.locked %}<form method="post" action="/admin/staff/{{ s.user_id }}/unlock"><button class="btn sm">Unlock</button></form>{% endif %}
+            {% if s.sessions %}<form method="post" action="/admin/staff/{{ s.user_id }}/sign-out"><button class="btn sm">Sign out</button></form>{% endif %}
+            {% if s.user_id != user.user_id %}
+              {% if s.active %}<form method="post" action="/admin/staff/{{ s.user_id }}/deactivate" onsubmit="return confirm('Deactivate {{ s.name }}? They will be signed out and cannot sign in.')"><button class="btn sm danger">Deactivate</button></form>
+              {% else %}<form method="post" action="/admin/staff/{{ s.user_id }}/activate"><button class="btn sm">Activate</button></form>{% endif %}
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+<div class="grid mt" style="grid-template-columns: minmax(0,1fr) minmax(0,2fr)">
+  <div class="card">
+    <div class="card-head"><div><h2>Add a staff member</h2><p>A temporary password is generated for the first sign-in</p></div></div>
+    <div class="card-body">
+      <form method="post" action="/admin/staff/create">
+        <div class="field"><label>Full name</label><input name="name" required minlength="3"></div>
+        <div class="field"><label>Work email</label><input name="email" type="email" placeholder="first.last@claimsure.example" required></div>
+        <div class="field"><label>Role</label><select name="role">{% for r in roles %}<option {{ 'selected' if r == 'Claims Executive' }}>{{ r }}</option>{% endfor %}</select></div>
+        <div class="field"><label>Region</label><select name="region">{% for r in regions %}<option>{{ r }}</option>{% endfor %}</select></div>
+        <button class="btn primary">Create account</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h2>Permission matrix</h2><p>Defined once in <code>claimsure/auth.py</code> and enforced by the routes and the services</p></div></div>
+    <div class="card-body flush table-wrap"><table class="data">
+      <thead><tr><th>Permission</th>{% for r in roles %}<th style="text-align:center;white-space:normal;font-size:10.5px">{{ r }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for p in matrix %}
+        <tr><td class="small">{{ p.label }}</td>{% for r in roles %}<td style="text-align:center">{% if p.roles[r] %}<span class="check">&#10003;</span>{% else %}<span class="muted">&middot;</span>{% endif %}</td>{% endfor %}</tr>
+      {% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+
+<div class="card mt">
+  <div class="card-head"><div><h2>Recent security events</h2><p>Sign-ins, failures, lock-outs and account changes from <code>audit_logs</code></p></div><a class="small" href="/audit?entity_type=user">All</a></div>
+  <div class="card-body flush"><table class="data">
+    <thead><tr><th>When</th><th>Event</th><th>By</th><th>Detail</th></tr></thead>
+    <tbody>{% for e in events %}
+      <tr><td class="nowrap small">{{ e.timestamp|datetime }}</td>
+        <td>{{ m.pill(e.action, 'red' if e.action in ['LOGIN_FAILED', 'ACCOUNT_LOCKED'] else ('green' if e.action == 'LOGIN' else 'blue')) }}</td>
+        <td class="small">{{ e.actor_name }}</td><td class="small">{{ e.summary }}</td></tr>
+    {% else %}<tr><td colspan="4" class="empty">No security events yet.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

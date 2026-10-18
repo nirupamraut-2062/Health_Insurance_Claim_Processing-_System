@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-head">
   <div><h1>Fraud watch</h1><p>Rule-based red-flag scoring. Medium risk is 30-59 points and high risk is 60 or more.</p></div>
-  <form method="post" action="/fraud/scan"><button class="btn primary" title="Re-runs every rule on open claims using bulk aggregation">&#8635; Re-scan open claims</button></form>
+  <form method="post" action="/fraud/scan"><button class="btn primary" title="Re-runs every rule on open claims using bulk aggregation" {{ 'disabled' if 'fraud.scan' not in perms }}>&#8635; Re-scan open claims</button></form>
 </div>
 <div class="grid g4">
   {{ m.kpi("High risk", levels.get('High', 0), "<a href='/fraud?risk=High'>View</a>", "red") }}

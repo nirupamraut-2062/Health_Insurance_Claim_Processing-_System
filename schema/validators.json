@@ -204,7 +204,7 @@
       "claim_type": {"enum": ["Cashless", "Reimbursement"]},
       "admission_type": {"enum": ["Planned", "Emergency"]},
       "status": {"enum": ["Intimated", "Documents Pending", "Under Review", "Query Raised", "Escalated",
-                          "Approved", "Partially Approved", "Rejected", "Settled", "Withdrawn"]},
+                          "Approved", "Partially Approved", "Rejected", "Settled", "Withdrawn", "Re-verification"]},
       "diagnosis": {
         "bsonType": "array",
         "minItems": 1,
@@ -281,7 +281,7 @@
     "properties": {
       "timestamp": {"bsonType": "date"},
       "action": {"bsonType": "string", "pattern": "^[A-Z_]+$"},
-      "entity_type": {"enum": ["claim", "policy", "member", "payment", "grievance", "system"]}
+      "entity_type": {"enum": ["claim", "policy", "member", "payment", "grievance", "system", "user"]}
     }
   }
 }
