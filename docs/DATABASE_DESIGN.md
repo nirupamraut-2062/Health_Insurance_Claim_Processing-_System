@@ -143,6 +143,20 @@ Target for the claims system: **RPO** of a few seconds (oplog-based backup) and 
 | Brute-force protection | Five wrong passwords lock the account for 15 minutes, using an atomic `$inc` on `failed_attempts`. Each IP address is also throttled |
 | Access levels | Head Admin, Supervisor and Staff, from one permission matrix (`claimsure/auth.py`) that the routes, the services and the templates all read. Only the Head Admin can reopen closed cases, manage staff or reset the database |
 
+| Notifications | Alerts to the insured go through a transactional outbox (`notifications`), written in the same transaction as the decision. They are delivered only to configured demo recipients, and member contacts are kept masked |
+
+### Alerts: the transactional outbox
+
+| Concern | Design |
+|---|---|
+| Consistency with the decision | Claim update, audit entry and outbox documents are written in one multi-document transaction. A rollback leaves no message |
+| Exactly one sender per message | `find_one_and_update` moves the message from `queued` to `sending` (atomic claim). Stale `sending` messages are re-queued after 5 minutes |
+| No duplicates | Unique index on `dedupe_key` = claim : event : version : channel : recipient |
+| Retries | Exponential backoff (1, 2, 4, 8 minutes); permanent errors fail at once; 5 attempts at most |
+| Queue query | Index `{status: 1, next_attempt_at: 1}`: equality on status, then range on time (ESR) |
+| Retention | Partial TTL index on `sent_at` for `status: "sent"` (180 days); failed messages are kept |
+| Validation | Server-side `$jsonSchema`: channel and status enums, required fields |
+
 ### Application access levels
 
 | Permission | Head Admin | Supervisor (Claims Manager) | Staff |

@@ -24,6 +24,7 @@
       <a href="/claims?assigned=me&status=open" class="{{ 'active' if active == 'queue' }}">&#9873; My Work Queue</a>
       <a href="/fraud" class="{{ 'active' if active == 'fraud' }}">&#9888; Fraud Watch</a>
       <a href="/grievances" class="{{ 'active' if active == 'grievances' }}">&#9993; Grievances</a>
+      {% if 'alerts.view' in perms %}<a href="/alerts" class="{{ 'active' if active == 'alerts' }}">&#9742; Alerts</a>{% endif %}
       <div class="nav-group">Master Data</div>
       <a href="/policies" class="{{ 'active' if active == 'policies' }}">&#9741; Policies</a>
       <a href="/members" class="{{ 'active' if active == 'members' }}">&#9787; Members</a>

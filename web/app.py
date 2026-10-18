@@ -29,7 +29,7 @@ from fastapi.templating import Jinja2Templates  # noqa: E402
 from starlette.concurrency import run_in_threadpool  # noqa: E402
 
 from claimsure import APP_NAME, APP_TAGLINE, VERSION, analytics, indexes, services  # noqa: E402
-from claimsure import auth, benchmark, concurrency, livefeed, maintenance, security  # noqa: E402
+from claimsure import audit, auth, benchmark, concurrency, livefeed, maintenance, notify, security  # noqa: E402
 from claimsure.auth import AuthError, PermissionDenied  # noqa: E402
 from claimsure.constants import (  # noqa: E402
     CLAIM_STATUSES, OPEN_STATUSES, AWAITING_PAYMENT, STATUS_COLORS, CLAIM_TYPES, ADMISSION_TYPES,
@@ -72,6 +72,8 @@ async def lifespan(_app):
         for group, password in setup["generated"].items():
             print(f"  [!] {group} initial password (shown once, set CLAIMSURE_{'ADMIN' if group == 'Head Admin' else 'STAFF'}"
                   f"_PASSWORD to choose your own): {password}")
+    notify.ensure_setup(get_db())
+    notify.start_worker(get_db)  # sends queued email / WhatsApp alerts in the background
     renewed = maintenance.renew_due_policies(get_db())  # nightly batch job, also run at start-up
     if renewed["renewed"]:
         print(f"  [OK] auto-renewed {renewed['renewed']} policies whose term had ended")
@@ -399,6 +401,7 @@ def claim_detail(request: Request, claim_number: str):
     payment = d.payments.find_one({"claim_number": claim_number})
     grievances = list(d.grievances.find({"claim_number": claim_number}).sort("raised_at", -1))
     audit_log = list(d.audit_logs.find({"entity_type": "claim", "entity_id": claim_number}).sort("timestamp", -1).limit(20))
+    alerts = list(d.notifications.find({"claim_number": claim_number}, {"text": 0}).sort("created_at", -1).limit(20))
     return render(request, "claim_detail.html", "claims", c=claim, policy=policy, plan=plan, icd=icd, member=member,
                   hospital=hospital, doctor=doctor, insurer=insurer, tpa=tpa, preview=preview,
                   actions=services.available_actions(claim, user), other_claims=other_claims, payment=payment,
@@ -406,7 +409,7 @@ def claim_detail(request: Request, claim_number: str):
                   manual_reasons={k: REJECTION_REASONS[k] for k in MANUAL_REJECTION_CODES},
                   grievance_categories=GRIEVANCE_CATEGORIES, grievance_channels=GRIEVANCE_CHANNELS,
                   staff=users_by_id(), member_age=age_on(member["dob"]) if member else None,
-                  outcome_labels=services.OUTCOMES,
+                  outcome_labels=services.OUTCOMES, alerts=alerts, alert_events=notify.EVENTS,
                   verifiers=list(d.users.find({"active": True, "role": {"$ne": "Claims Executive"}},
                                               {"_id": 0, "user_id": 1, "name": 1, "role": 1}).sort("user_id", 1)))
 
@@ -425,7 +428,7 @@ def _claim_action(request, claim_number, fn, success):
         return redirect(f"/claims/{claim_number}", str(exc), "error")
     if isinstance(out, dict) and "steps" in out:
         kind = "success" if out["committed"] else "error"
-        msg = ("Settlement committed - claim, policy, payment and audit log updated atomically."
+        msg = ("Settlement committed - claim, policy, payment, audit log and the payment alerts written atomically."
                if out["committed"] else f"Transaction rolled back: {out['error']}")
         return redirect(f"/claims/{claim_number}", msg, kind, steps=out["steps"])
     if isinstance(out, dict) and "message" in out:
@@ -491,6 +494,68 @@ def claim_grievance(request: Request, claim_number: str, category: str = Form(..
 # --------------------------------------------------------------------------- #
 # Policies, members, hospitals
 # --------------------------------------------------------------------------- #
+# --------------------------------------------------------------------------- #
+# Alerts to the insured (email / WhatsApp outbox)
+# --------------------------------------------------------------------------- #
+@app.get("/alerts", response_class=HTMLResponse)
+def alerts_page(request: Request, page: int = 1):
+    auth.require(current_user(request), "alerts.view")
+    d = db()
+    p = request.query_params
+    q = {k: p[k] for k in ("status", "channel", "event") if p.get(k)}
+    if p.get("claim"):
+        q["claim_number"] = p["claim"].strip().upper()
+    total = d.notifications.count_documents(q)
+    pg = paginate(request, total, page)
+    rows = list(d.notifications.find(q).sort("created_at", -1).skip((pg["page"] - 1) * PER_PAGE).limit(PER_PAGE))
+    settings = notify.get_settings(d)
+    return render(request, "alerts.html", "alerts", rows=rows, pg=pg, f=p, total=total, summary=notify.summary(d),
+                  state=notify.channel_state(d, settings), settings=settings, events=notify.EVENTS,
+                  statuses=notify.STATUSES, channels=notify.CHANNELS, max_attempts=notify.MAX_ATTEMPTS,
+                  staff=users_by_id())
+
+
+@app.post("/alerts/settings")
+def alerts_settings(request: Request, email_enabled: str = Form(""), email: str = Form(""),
+                    whatsapp_enabled: str = Form(""), whatsapp: str = Form("")):
+    user = current_user(request)
+    auth.require(user, "alerts.manage")
+    try:
+        doc = notify.save_settings(db(), user, email_enabled == "1", email, whatsapp_enabled == "1", whatsapp)
+    except ValueError as exc:
+        return redirect("/alerts", str(exc), "error")
+    audit.log(db(), user, "ALERT_SETTINGS_CHANGED", "system", "notifications",
+                       f"Alert recipients: {len(doc['email']['recipients'])} email, "
+                       f"{len(doc['whatsapp']['recipients'])} WhatsApp")
+    return redirect("/alerts", "Alert settings saved. New claim decisions will be sent to these recipients.")
+
+
+@app.post("/alerts/test")
+def alerts_test(request: Request):
+    user = current_user(request)
+    auth.require(user, "alerts.manage")
+    results = notify.send_test(db(), user)
+    ok = sum(1 for _, _, r in results if r == "sent")
+    steps = [(f"{ch} {to or ''}".strip(), r) for ch, to, r in results]
+    return redirect("/alerts", f"Test messages: {ok} sent.", "success" if ok and ok == len(results) else "warning",
+                    steps=steps)
+
+
+@app.post("/alerts/process")
+def alerts_process(request: Request):
+    auth.require(current_user(request), "alerts.manage")
+    counts = notify.process_due(db())
+    return redirect("/alerts", f"Sender run: {counts['sent']} sent, {counts['retry']} to retry, {counts['failed']} failed.")
+
+
+@app.post("/alerts/{notification_id}/resend")
+def alerts_resend(request: Request, notification_id: str):
+    auth.require(current_user(request), "alerts.manage")
+    n = notify.resend(db(), notification_id) if bson.ObjectId.is_valid(notification_id) else 0
+    return redirect(_back(request, "/alerts"), "Queued again; the sender will retry it now." if n
+                    else "Only failed messages can be resent.", "success" if n else "warning")
+
+
 @app.get("/policies", response_class=HTMLResponse)
 def policies_list(request: Request, page: int = 1):
     d = db()

@@ -5,7 +5,7 @@
 Before the review:
 - Run `pip install -r requirements.txt` once.
 - Make sure `.env` holds your Atlas connection strings, and that **Network Access** in Atlas allows the network you will present from.
-- Run `python main.py test-live` the morning of the review: 32 passing tests show the server is reachable and everything works.
+- Run `python main.py test-live` the morning of the review: 34 passing tests show the server is reachable and everything works.
 - Open the public link (Render) once, about a minute early, so the free server wakes up. Or start the app locally with `python main.py web` (`http://127.0.0.1:8000`). The header must say **LIVE · MongoDB (Atlas)**.
 - Have three sign-ins ready (passwords are in `.env`):
   - **Head Admin**: `USR023` (Nirupam Raut) or `USR024` (Bhudev Singh)
@@ -58,6 +58,10 @@ Before the review:
    - As `USR023`, open **Reopen case for re-verification**, give a reason and assign it to the Fraud Analyst `USR021`. The claim moves to **Re-verification** and lands in her queue.
    - Sign in as `USR021` and choose **Settlement flagged for recovery**. The claim returns to Settled with a recovery flag, and the payment is not made a second time.
    - For a **Rejected** claim, the verifier can choose *re-adjudicate* instead: the old decision moves to `previous_adjudications`.
+9. **Alerts**: right after the decision and the payment, the phones show WhatsApp messages and the inboxes show emails.
+   - Open **Alerts**: each message is a document in `notifications`, written in the same transaction as the decision.
+   - Show the *Simulate failure* settlement: no "paid" message was written, because the outbox rolled back with it.
+   - Before the review, send the Twilio sandbox *join* code from both phones, then press **Send test message**.
 
 ### 5. Database features (6 min)
 - **Concurrency Lab → Run all four scenarios**: two adjusters pay against one policy at the same time.
@@ -94,7 +98,7 @@ Before the review:
 
 ### 6. Wrap-up (1 min)
 - CLI (`python main.py`) shows the same features in a terminal.
-- `python main.py test` runs 108 tests on the mock, and `python main.py test-live` runs 32 more on Atlas.
+- `python main.py test` runs 122 tests on the mock, and `python main.py test-live` runs 34 more on Atlas.
 - The app is deployed publicly (Render + Atlas), and the evaluators can open it from their phones.
 - mongosh scripts 01–09 cover window functions, `$dateDiff` with `$percentile`, `$merge`, `$geoNear`, `$text`, `explain()` and roles.
 - The design rationale is in `docs/DATABASE_DESIGN.md`: ER model, relational comparison, CAP, shard keys, backup and security.
@@ -232,3 +236,16 @@ One permission matrix in `claimsure/auth.py` maps each permission to the roles t
 
 **Q29. What does reopening a dead case do to the data?**
 The claim's status changes from Settled, Rejected or Withdrawn to **Re-verification**, under the optimistic lock. An entry is pushed onto the embedded `reverifications` array: who reopened it, why, from which status and who verifies it. `reopen_count` is incremented and an audit entry is written. The server-side `$jsonSchema` enum was extended with the new status, and the app syncs validators with `collMod` at start-up. A settled claim can never be paid again, because the only outcomes are uphold or flag for recovery, and the unique index on `payments.claim_number` would block a second payment anyway.
+
+**Q30. How do you make sure the email or WhatsApp alert matches what really happened?**
+With the transactional outbox pattern. The decision does not call the email or WhatsApp API directly. It inserts the message into `notifications` inside the same transaction as the claim update and the audit entry. If the transaction rolls back, as with *Simulate failure* during settlement, the message never exists. If it commits, the message is guaranteed to be in the outbox. A background sender then delivers it.
+
+**Q31. What if the sender crashes, or two senders run at once?**
+Each sender claims a message with one atomic `find_one_and_update` that moves it from `queued` to `sending`, so only one sender can win. A message stuck in `sending` for more than 5 minutes (a crashed sender) goes back to `queued`. Temporary errors are retried with exponential backoff, up to 5 attempts. The unique `dedupe_key` (claim, event, version, channel, recipient) makes it impossible to write the same alert twice.
+
+**Q32. Which indexes does the outbox use?**
+- `{status: 1, next_attempt_at: 1}` for the sender's query (equality, then range)
+- a unique `dedupe_key`
+- `{claim_number: 1, created_at: -1}` for the claim page
+- a **partial TTL index** on `sent_at` that only applies to sent messages, so delivered alerts are deleted after 180 days while failed ones stay for investigation
+

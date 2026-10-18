@@ -39,7 +39,7 @@ def seed(db=None, verbose=True):
     say = print if verbose else (lambda *a, **k: None)
     say(f"\nSeeding database '{DB_NAME}' ({'mongomock' if is_mock() else 'MongoDB'}) ...")
 
-    for name in COLLECTIONS + ["counters"]:
+    for name in COLLECTIONS + ["counters", "notifications"]:  # alerts belong to the claims being reloaded
         db.drop_collection(name)
     if not is_mock():
         apply_validators(db)
@@ -63,6 +63,8 @@ def seed(db=None, verbose=True):
     built = sum(1 for r in results if r[2] == "ok")
     say(f"  [OK] {built} indexes built" + (f", {len(results) - built} skipped (not supported by mongomock)"
                                             if built < len(results) else ""))
+    from . import notify
+    notify.ensure_setup(db)  # the alert outbox: validator and indexes
     if not is_mock():  # views and the materialised view need a real server
         from . import maintenance
         maintenance.create_views(db)

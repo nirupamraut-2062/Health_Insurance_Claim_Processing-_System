@@ -322,6 +322,17 @@
   </div>
   {% endif %}
 
+  {% if alerts %}
+  <div class="card mt">
+    <div class="card-head"><div><h2>Messages to the insured</h2><p>Written with the decision, in the same transaction</p></div>{% if 'alerts.view' in perms %}<a class="small" href="/alerts?claim={{ c.claim_number }}">Outbox</a>{% endif %}</div>
+    <div class="card-body">{% for a in alerts %}
+      <div class="stat-row small"><div><b>{{ alert_events.get(a.event, a.event) }}</b> &middot; {{ 'Email' if a.channel == 'email' else 'WhatsApp' }}
+        <div class="muted">{{ a.to }} &middot; {{ (a.sent_at or a.created_at)|datetime }}</div></div>
+        {{ m.pill(a.status, {'sent': 'green', 'queued': 'amber', 'sending': 'blue', 'failed': 'red', 'simulated': 'purple'}[a.status]) }}</div>
+    {% endfor %}</div>
+  </div>
+  {% endif %}
+
   {% if audit_log %}
   <div class="card mt">
     <div class="card-head"><h2>Audit log</h2><a class="small" href="/audit?entity_id={{ c.claim_number }}">All</a></div>

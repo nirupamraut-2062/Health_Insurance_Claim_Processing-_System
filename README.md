@@ -33,12 +33,13 @@ The full design rationale is in **[docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN
 | **Performance at scale** | 100,000-document benchmark with real `explain("executionStats")`: covered queries, the prefix rule, and cases where an index does *not* help |
 | **Security** | Database users and roles (least privilege), a custom auditor role, a PII-masked view; the server refuses the analyst's writes |
 | **Staff sign-in** | Every page needs a login. scrypt password hashes in a separate `credentials` collection, server-side sessions with a **TTL index**, lock-out after 5 wrong passwords, and three access levels (Head Admin, Supervisor, Staff) enforced by one permission matrix |
+| **Email & WhatsApp alerts** | Approval, rejection, payment and query alerts written to a `notifications` outbox **in the same transaction** as the decision. A background sender claims each message atomically, retries with exponential backoff, and is guarded by a unique de-duplication key and a TTL index |
 | **Re-verification** | Only the Head Admin can reopen a closed case (Settled, Rejected or Withdrawn). A verifier upholds it, sends it for fresh adjudication, or flags a paid claim for recovery |
 | **Change streams** | Live feed of inserts and updates pushed to the browser and the CLI |
 | **Administration** | Views, a `$merge` materialised view, schema versioning with migration, a bulk-write renewal batch job, backup and restore |
 | **Business logic** | Adjudication engine (waiting periods, room-rent proportionate deduction, sub-limits, co-pay, sum-insured cap), approval-limit escalation, an 11-state claim workflow, fraud scoring with 9 red-flag rules |
 | **Interfaces** | A web application with 15+ pages, an interactive CLI, 8 mongosh scripts and a REST/JSON API for the charts |
-| **Quality** | 108 mock-mode tests plus 32 live tests that run against a real MongoDB replica set (`python main.py test-live`) |
+| **Quality** | 122 mock-mode tests plus 34 live tests that run against a real MongoDB replica set (`python main.py test-live`) |
 
 ---
 
@@ -56,7 +57,7 @@ Other commands:
 ```bash
 python main.py              # interactive console menu
 python main.py report       # KPI summary + insurer / product / rejection reports
-python main.py test         # 108 tests on the in-memory mock
+python main.py test         # 122 tests on the in-memory mock
 python main.py generate     # regenerate data/*.json (deterministic)
 ```
 
@@ -64,7 +65,7 @@ Database commands (most need a real MongoDB, see below):
 
 ```bash
 python main.py init-db      # validators + data + indexes + views on the server
-python main.py test-live    # 32 live tests in a separate claimsure_test database
+python main.py test-live    # 34 live tests in a separate claimsure_test database
 python main.py lab          # concurrency lab: lost update vs $inc vs optimistic lock vs transaction
 python main.py bench        # 100,000-document index benchmark (--n to change the size)
 python main.py watch        # print the change stream live (make changes in the web app)
@@ -75,6 +76,7 @@ python main.py views        # create the read-only views
 python main.py backup       # logical backup to backups/<timestamp>/
 python main.py restore NAME # restore a backup
 python main.py users        # staff sign-in accounts, access levels, last sign-in
+python main.py notify       # alert channels, then send every queued email / WhatsApp message
 python main.py reset-password USR023   # issue a temporary password (e.g. if the Head Admin is locked out)
 ```
 
@@ -108,6 +110,40 @@ The permission matrix is defined once in `claimsure/auth.py`. The web routes, th
   - *re-adjudicate*: back to Under Review, for unpaid claims only; the old decision is kept in `previous_adjudications`
   - *flag for recovery*: for settled claims; the payment is never made twice
 - Each round is an entry in the embedded `reverifications` array.
+
+## Claim alerts by email and WhatsApp
+
+When a claim is approved, partially approved, rejected or paid, or when a query is raised, the insured gets a message on both channels.
+
+**How it works:**
+- **Outbox in the same transaction.** The claim update, the audit entry and one `notifications` document per recipient are committed together. A rolled-back settlement therefore never tells anyone they were paid.
+- **Background sender.** A sender in the web process claims each due message with an atomic `find_one_and_update` (queued → sending), so two senders can never send the same message. It records the provider's message id.
+- **Failures.**
+  - Temporary failures are retried after 1, 2, 4 and 8 minutes; after 5 attempts the message is marked failed.
+  - Permanent failures, such as a wrong password or an invalid number, fail at once.
+  - The Head Admin can resend a failed message from the **Alerts** page.
+- **Indexes:**
+  - queue index `{status, next_attempt_at}`
+  - unique `dedupe_key`, so a message is never written twice
+  - per-claim index
+  - TTL index with `partialFilterExpression: {status: "sent"}`, which deletes sent messages after 180 days
+- **Safe recipients.** Member contacts are synthetic, so alerts go only to the recipients set on the **Alerts** page (Head Admin). Each message keeps a masked copy of the member contact it was meant for. If a channel is not configured, messages are still written with status *simulated*.
+
+**Providers (in `.env` locally, and in Render → Environment for the public site):**
+
+```ini
+# Email, option A: Gmail (Google Account → Security → 2-Step Verification → App passwords)
+CLAIMSURE_SMTP_USER=yourname@gmail.com
+CLAIMSURE_SMTP_PASSWORD=abcd efgh ijkl mnop
+# Email, option B: Brevo HTTPS API (use it if the host blocks SMTP ports)
+CLAIMSURE_BREVO_API_KEY=xkeysib-...
+CLAIMSURE_EMAIL_FROM=yourname@gmail.com      # a sender verified in Brevo
+# WhatsApp: Twilio (sandbox number +1 415 523 8886 by default)
+CLAIMSURE_TWILIO_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+CLAIMSURE_TWILIO_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+**Twilio sandbox:** each recipient first sends the sandbox *join* code to +1 415 523 8886 on WhatsApp. WhatsApp then allows free-form messages for 24 hours after that person's last message, so send the code again before a demo.
 
 ## Public deployment (Render + Atlas)
 
@@ -313,6 +349,7 @@ claimsure/            core package (no web code)
   fraud.py            fraud scoring
   services.py         workflow: intimation, status changes, decisions, settlement, re-verification, grievances
   auth.py             staff sign-in, sessions, lock-out, access levels and the permission matrix
+  notify.py           email / WhatsApp alerts: transactional outbox, providers, background sender
   transactions.py     with_transaction() with retry / emulated rollback in mock mode
   concurrency.py      concurrency-control lab (lost update, $inc, optimistic lock, transaction)
   benchmark.py        100,000-document index benchmark with explain()
@@ -344,6 +381,7 @@ main.py               CLI entry point
 | Analytics | 19 reports, each with chart, data table and the exact aggregation pipeline |
 | Fraud watch | Risk-ranked alerts, rule statistics, watch-listed hospitals, re-scan |
 | Grievances / Audit log | Complaint handling and the full change history |
+| Alerts | Email and WhatsApp channel status, recipients (Head Admin), test message, outbox with retries and resend |
 | DB console | Collections and sizes, data model, design patterns, index catalogue, validators, live demos |
 | Concurrency lab | Four strategies for two simultaneous payments on one policy, with an event timeline |
 | Scale benchmark | 100,000 documents; plans, keys and docs examined, and times before and after indexing |
@@ -364,8 +402,8 @@ main.py               CLI entry point
 ## Testing
 
 ```bash
-python main.py test              # 108 tests on the in-memory mock
-python main.py test-live         # 32 tests on the real MongoDB in .env (separate claimsure_test database)
+python main.py test              # 122 tests on the in-memory mock
+python main.py test-live         # 34 tests on the real MongoDB in .env (separate claimsure_test database)
 ```
 
 ## Team

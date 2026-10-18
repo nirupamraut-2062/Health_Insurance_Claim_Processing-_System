@@ -15,6 +15,12 @@ sys.path.insert(0, ROOT)
 os.environ.setdefault("CLAIMSURE_DB", "claimsure_test")
 ADMIN_PASSWORD = os.environ["CLAIMSURE_ADMIN_PASSWORD"] = "Admin-live-2026"
 STAFF_PASSWORD = os.environ["CLAIMSURE_STAFF_PASSWORD"] = "Staff-live-2026"
+# Never send real email / WhatsApp from tests: blank provider settings win over .env,
+# and the background sender stays off (tests drive it with fake providers).
+for _key in ("CLAIMSURE_SMTP_USER", "CLAIMSURE_SMTP_PASSWORD", "CLAIMSURE_BREVO_API_KEY", "CLAIMSURE_TWILIO_SID",
+             "CLAIMSURE_TWILIO_TOKEN"):
+    os.environ[_key] = ""
+os.environ["CLAIMSURE_NOTIFY_WORKER"] = "0"
 
 from claimsure import db as dbmod  # noqa: E402
 

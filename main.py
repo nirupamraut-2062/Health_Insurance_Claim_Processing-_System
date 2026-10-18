@@ -426,6 +426,26 @@ def db_lab_command(db, args):
         print(maintenance.restore(db, args.name))
 
 
+def notify_command(db):
+    """Alert channels, then send every queued email / WhatsApp message now."""
+    from claimsure import notify
+    ensure_seeded(db)
+    notify.ensure_setup(db)
+    header("Claim alerts (email / WhatsApp)")
+    for ch, st in notify.channel_state(db).items():
+        if st["live"]:
+            state = f"{G}LIVE{Style.RESET_ALL} via {st['provider']} to {', '.join(st['recipients'])}"
+        else:
+            state = f"{Y}simulated{Style.RESET_ALL} ({st['reason']})"
+        print(f"  {ch:9s} {state}")
+    counts = notify.process_due(db)
+    s = notify.summary(db)
+    print()
+    print(f"  Sender run: {counts['sent']} sent, {counts['retry']} to retry, {counts['failed']} failed")
+    print(f"  Outbox: {s['total']} messages - {s['queued']} waiting, {s['failed']} failed, {s['simulated']} simulated, "
+          f"{s['sent_24h']} sent in 24 h")
+
+
 def staff_command(db, args):
     """Sign-in accounts: list them, or issue a temporary password (e.g. when the Head Admin is locked out)."""
     from claimsure import auth
@@ -488,7 +508,7 @@ def main():
     parser.add_argument("command", nargs="?", default="menu",
                         choices=["menu", "web", "seed", "init-db", "generate", "report", "benchmark", "test", "test-live",
                                  "lab", "bench", "watch", "security", "renew", "migrate", "views", "backup", "restore",
-                                 "users", "reset-password"])
+                                 "users", "reset-password", "notify"])
     parser.add_argument("name", nargs="?", help="backup name for restore, or staff ID / email for reset-password")
     parser.add_argument("--n", type=int, default=100000, help="documents for the scale benchmark")
     parser.add_argument("--port", type=int, default=8000)
@@ -530,6 +550,8 @@ def main():
         db = get_db()
         ensure_seeded(db)
         db_lab_command(db, args)
+    elif args.command == "notify":
+        notify_command(get_db())
     elif args.command in ("users", "reset-password"):
         staff_command(get_db(), args)
     elif args.command == "test-live":

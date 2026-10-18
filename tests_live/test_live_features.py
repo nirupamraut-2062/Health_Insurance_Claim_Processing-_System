@@ -125,3 +125,27 @@ def test_server_validator_accepts_reverification(db):
     assert db.claims.find_one({"claim_number": claim["claim_number"]})["status"] == "Withdrawn"
     with pytest.raises(Exception):  # the $jsonSchema validator on the server still rejects unknown statuses
         db.claims.update_one({"_id": claim["_id"]}, {"$set": {"status": "Reopened"}})
+
+
+# --------------------------------------------------------------------------- #
+# Alert outbox on the real server
+# --------------------------------------------------------------------------- #
+def test_outbox_indexes_and_validator(db, client):
+    info = db.notifications.index_information()
+    assert info["uq_notification_dedupe"]["unique"]
+    assert info["ttl_notification_sent"]["partialFilterExpression"] == {"status": "sent"}
+    opts = next(db.list_collections(filter={"name": "notifications"}))["options"]
+    assert "channel" in opts["validator"]["$jsonSchema"]["properties"]
+    with pytest.raises(Exception):  # the server rejects an unknown channel
+        db.notifications.insert_one({"event": "approved", "channel": "sms", "to": "x", "status": "queued",
+                                     "attempts": 0, "text": "t", "created_at": datetime.now()})
+
+
+def test_outbox_rolls_back_with_the_settlement(db, manager):
+    claim = db.claims.find_one({"status": "Approved", "claim_number": {"$nin": db.notifications.distinct("claim_number")}})
+    number = claim["claim_number"]
+    failed = services.settle_claim(db, number, manager, simulate_failure=True)
+    assert not failed["committed"] and db.notifications.count_documents({"claim_number": number}) == 0
+    ok = services.settle_claim(db, number, manager)
+    assert ok["committed"]
+    assert db.notifications.count_documents({"claim_number": number, "event": "settled"}) == 2

@@ -9,7 +9,7 @@ from datetime import datetime
 
 from pymongo import ReturnDocument
 
-from . import audit, auth, fraud
+from . import audit, auth, fraud, notify
 from .adjudication import adjudicate
 from .constants import (
     TRANSITIONS, DECISION_STATUSES, AWAITING_PAYMENT, CLOSED_STATUSES, ROLES, STATE_REGION, DOCUMENT_TYPES,
@@ -49,6 +49,33 @@ def _guarded_update(db, claim, update, expected_version=None):
         raise ConcurrencyError(f"{claim['claim_number']} was changed by another user at the same moment. "
                                f"Nothing was saved; reload and try again.")
     return res
+
+
+def _commit(db, claim, update, expected_version, audit_entry, event=None):
+    """Optimistic-locked claim update plus its audit entry.
+
+    When the change must be told to the insured (``event``), the claim update,
+    the audit entry and the outbox messages are written in ONE transaction, so a
+    message exists exactly when the decision does (transactional outbox).
+    """
+    if event is None:
+        _guarded_update(db, claim, update, expected_version)
+        audit.log(db, *audit_entry)
+        return
+    flt = _lock_filter(claim, expected_version)
+    update.setdefault("$inc", {})["version"] = 1
+    new_version = (claim.get("version") or 0) + 1
+
+    def body(tx):
+        res = tx.update_one("claims", flt, update)
+        if res.matched_count != 1:
+            raise ConcurrencyError(f"{claim['claim_number']} was changed by another user at the same moment. "
+                                   f"Nothing was saved; reload and try again.")
+        audit.log(db, *audit_entry, session=tx)
+        notify.enqueue(tx, db, event, tx.find_one("claims", {"_id": claim["_id"]}), new_version)
+
+    run_transaction(db, body)
+    notify.wake()
 
 
 # A counter bumped on every write; analytics caches use it to know when to refresh.
@@ -168,9 +195,10 @@ def change_status(db, claim_number, new_status, user, remarks="", expected_versi
         update = {"$set": sets, "$push": push}
         if unset:
             update["$unset"] = unset
-        _guarded_update(db, claim, update, expected_version)
-        audit.log(db, user, "CLAIM_STATUS_CHANGED", "claim", claim_number,
-                  f"{claim_number}: {old} → {new_status}", {"from": old, "to": new_status, "remarks": remarks})
+        _commit(db, claim, update, expected_version,
+                (user, "CLAIM_STATUS_CHANGED", "claim", claim_number, f"{claim_number}: {old} → {new_status}",
+                 {"from": old, "to": new_status, "remarks": remarks}),
+                event="query_raised" if new_status == QUERY_RAISED else None)
         mark_changed()
     return new_status
 
@@ -232,10 +260,11 @@ def adjudicate_claim(db, claim_number, user, manual_rejection=None, remarks="", 
             sets["pre_auth.status"] = "Approved" if result["eligible"] else "Denied"
         note = (f"{decision} for {inr(result['payable_amount'])}" if result["eligible"]
                 else f"Rejected: {result['rejection_reason']}") + (f" - {remarks}" if remarks else "")
-        _guarded_update(db, claim, {"$set": sets, "$push": {"status_history": _history(decision, user, note, now)}},
-                        expected_version)
-        audit.log(db, user, "CLAIM_DECISION", "claim", claim_number, f"{claim_number}: {decision}",
-                  {"payable": result["payable_amount"], "rejection_code": result["rejection_code"]})
+        _commit(db, claim, {"$set": sets, "$push": {"status_history": _history(decision, user, note, now)}},
+                expected_version,
+                (user, "CLAIM_DECISION", "claim", claim_number, f"{claim_number}: {decision}",
+                 {"payable": result["payable_amount"], "rejection_code": result["rejection_code"]}),
+                event=notify.DECISION_EVENTS[decision])
         mark_changed()
         return {"escalated": False, "message": note, "result": result}
 
@@ -326,6 +355,10 @@ def settle_claim(db, claim_number, user, simulate_failure=False, expected_versio
         audit.log(db, user, "CLAIM_SETTLED", "claim", claim_number, f"{claim_number}: settled for {inr(amount)}",
                   {"payment_id": payment_id, "utr": utr}, session=tx)
         steps.append(("Write audit log", "CLAIM_SETTLED"))
+        alerts = notify.enqueue(tx, db, "settled", tx.find_one("claims", {"claim_number": claim_number}),
+                                (current.get("version") or 0) + 1)
+        steps.append(("Queue alerts", f"{len(alerts)} message(s) written to notifications (outbox): "
+                                      + ", ".join(sorted({f"{a['channel']} {a['status']}" for a in alerts}))))
 
     try:
         run_transaction(db, body, on_retry=lambda n: retries.append(n))
@@ -333,6 +366,7 @@ def settle_claim(db, claim_number, user, simulate_failure=False, expected_versio
             steps.insert(1, ("Retry", f"Write conflict with a concurrent transaction; MongoDB retried "
                                       f"{len(retries)} time(s)"))
         steps.append(("COMMIT", "All writes applied atomically"))
+        notify.wake()
         mark_changed()
         return {"committed": True, "steps": steps, "payment_id": payment_id, "retries": len(retries)}
     except Exception as exc:

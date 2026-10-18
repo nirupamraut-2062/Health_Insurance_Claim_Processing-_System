@@ -61,6 +61,8 @@ PERMISSIONS = {
     "claims.fraud_review": ({"Admin", "Claims Manager", "Fraud Analyst"}, "Record a fraud review"),
     "fraud.scan": ({"Admin", "Claims Manager", "Fraud Analyst"}, "Re-run the fraud rules on open claims"),
     "audit.view": ({"Admin", "Claims Manager", "Fraud Analyst"}, "Read the full audit log"),
+    "alerts.view": ({"Admin", "Claims Manager"}, "See the email and WhatsApp alerts sent to the insured"),
+    "alerts.manage": ({"Admin"}, "Set alert recipients, send test messages and resend failed alerts"),
     "db.labs": ({"Admin", "Claims Manager"}, "Run the concurrency lab and the analyst-account test"),
     "db.maintenance": ({"Admin"}, "Run maintenance jobs: renewal, migration, views, backup"),
     "db.benchmark": ({"Admin"}, "Run the 100,000-document scale benchmark"),

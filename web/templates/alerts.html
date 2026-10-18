@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Alerts{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Alerts to the insured</h1>
+    <p>Email and WhatsApp messages for approvals, rejections, payments and queries &middot; transactional outbox in <code>notifications</code></p>
+  </div>
+  {% if 'alerts.manage' in perms %}
+  <div class="btn-row">
+    <form method="post" action="/alerts/process"><button class="btn" title="Send every due message now (the background sender also does this)">&#8635; Run sender now</button></form>
+    <form method="post" action="/alerts/test"><button class="btn primary">&#9993; Send test message</button></form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid g4">
+  {{ m.kpi("Sent (24 h)", summary.sent_24h, "delivered to the provider", "green") }}
+  {{ m.kpi("Waiting", summary.queued, "queued or being sent, retried up to " ~ max_attempts ~ " times", "amber") }}
+  {{ m.kpi("Failed", summary.failed, "gave up; can be resent", "red") }}
+  {{ m.kpi("Simulated", summary.simulated, "written but not sent (channel not live)", "purple") }}
+</div>
+
+<div class="grid g2 mt">
+  {% for ch in channels %}{% set st = state[ch] %}
+  <div class="card">
+    <div class="card-head"><div><h2>{{ 'Email' if ch == 'email' else 'WhatsApp' }}</h2>
+      <p>{{ st.provider or 'No provider configured' }}</p></div>
+      {{ m.pill('LIVE' if st.live else 'SIMULATED', 'green' if st.live else 'amber') }}</div>
+    <div class="card-body">
+      {% if st.live %}<p class="small" style="margin-top:0">Every claim alert is delivered to: <b>{{ st.recipients|join(', ') }}</b></p>
+      {% else %}<p class="small" style="margin-top:0">Not sending: <b>{{ st.reason }}</b>. Alerts are still written to the outbox with status <i>simulated</i>.</p>{% endif %}
+      {% if ch == 'email' %}<p class="small muted" style="margin:0">Set <code>CLAIMSURE_SMTP_USER</code> and <code>CLAIMSURE_SMTP_PASSWORD</code> (a Gmail app password), or <code>CLAIMSURE_BREVO_API_KEY</code> and <code>CLAIMSURE_EMAIL_FROM</code>, in <code>.env</code> or the hosting environment.</p>
+      {% else %}<p class="small muted" style="margin:0">Set <code>CLAIMSURE_TWILIO_SID</code> and <code>CLAIMSURE_TWILIO_TOKEN</code>. With the Twilio sandbox, each recipient first sends the sandbox's <i>join</i> code to +1 415 523 8886 on WhatsApp.</p>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if 'alerts.manage' in perms %}
+<div class="card mt">
+  <div class="card-head"><div><h2>Recipients</h2><p>The data set is synthetic, so alerts never go to member contacts. They go to these addresses, and each message records whom it was meant for.</p></div>
+    {% if settings.updated_at %}<span class="small muted">Saved {{ settings.updated_at|datetime }} by {{ staff[settings.updated_by].name if settings.updated_by in staff else settings.updated_by }}</span>{% endif %}</div>
+  <form class="card-body" method="post" action="/alerts/settings">
+    <div class="grid g2">
+      <div>
+        <label class="inline-check" style="margin:0 0 8px"><input type="checkbox" name="email_enabled" value="1" {{ 'checked' if settings.email.enabled }}> Send email alerts</label>
+        <textarea name="email" rows="2" placeholder="you@gmail.com, friend@gmail.com">{{ settings.email.recipients|join(', ') }}</textarea>
+      </div>
+      <div>
+        <label class="inline-check" style="margin:0 0 8px"><input type="checkbox" name="whatsapp_enabled" value="1" {{ 'checked' if settings.whatsapp.enabled }}> Send WhatsApp alerts</label>
+        <textarea name="whatsapp" rows="2" placeholder="+919876543210, +918765432109">{{ settings.whatsapp.recipients|join(', ') }}</textarea>
+      </div>
+    </div>
+    <button class="btn primary" style="margin-top:10px">Save recipients</button>
+    <span class="small muted" style="margin-left:8px">Up to 5 per channel. Indian mobile numbers may be typed without +91.</span>
+  </form>
+</div>
+{% endif %}
+
+<div class="card mt">
+  <div class="card-head"><div><h2>Outbox</h2><p>{{ total|num }} message(s) &middot; queue index <code>{status: 1, next_attempt_at: 1}</code>, unique <code>dedupe_key</code>, TTL on sent messages after 180 days</p></div></div>
+  <form class="filters" method="get">
+    <div class="f"><label>Status</label><select name="status"><option value="">All</option>{% for s in statuses %}<option {{ 'selected' if f.status == s }}>{{ s }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Channel</label><select name="channel"><option value="">All</option>{% for c in channels %}<option {{ 'selected' if f.channel == c }}>{{ c }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Event</label><select name="event"><option value="">All</option>{% for k, v in events.items() %}<option value="{{ k }}" {{ 'selected' if f.event == k }}>{{ v }}</option>{% endfor %}</select></div>
+    <div class="f"><label>Claim</label><input name="claim" value="{{ f.claim or '' }}" placeholder="CLM-2026-..."></div>
+    <button class="btn">Filter</button>
+  </form>
+  <div class="card-body flush table-wrap"><table class="data">
+    <thead><tr><th>Created</th><th>Claim</th><th>Event</th><th>Channel</th><th>To</th><th>Status</th><th>Detail</th><th></th></tr></thead>
+    <tbody>
+    {% for n in rows %}
+      <tr>
+        <td class="nowrap small">{{ n.created_at|datetime }}</td>
+        <td>{% if n.claim_number %}<a href="/claims/{{ n.claim_number }}">{{ n.claim_number }}</a>{% else %}<span class="muted">-</span>{% endif %}</td>
+        <td>{{ events.get(n.event, n.event) }}</td>
+        <td>{{ m.pill('Email' if n.channel == 'email' else 'WhatsApp', 'blue' if n.channel == 'email' else 'green') }}</td>
+        <td class="small"><span class="mono">{{ n.to }}</span>{% if n.intended_for and n.intended_for != '-' and n.status != 'simulated' %}<div class="sub">for member {{ n.intended_for }}</div>{% endif %}</td>
+        <td>{{ m.pill(n.status, {'sent': 'green', 'queued': 'amber', 'sending': 'blue', 'failed': 'red', 'simulated': 'purple'}[n.status]) }}
+          {% if n.attempts %}<div class="sub">{{ n.attempts }} attempt(s)</div>{% endif %}</td>
+        <td class="small">{% if n.status == 'sent' %}{{ n.sent_at|datetime }} via {{ n.provider }}{% elif n.last_error %}<span class="muted">{{ n.last_error }}</span>{% endif %}
+          <details><summary class="small">Message</summary><pre class="small" style="white-space:pre-wrap;margin:6px 0 0;font-family:inherit">{{ n.text }}</pre></details></td>
+        <td class="right">{% if n.status == 'failed' and 'alerts.manage' in perms %}<form method="post" action="/alerts/{{ n._id }}/resend"><button class="btn sm">Resend</button></form>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="empty">No alerts yet. Record a decision on a claim, settle one, or raise a query.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {{ m.pager(pg) }}
+</div>
+{% endblock %}
