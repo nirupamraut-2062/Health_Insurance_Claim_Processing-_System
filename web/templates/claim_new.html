@@ -58,6 +58,22 @@
       </div>
     </div>
   </div>
+
+  <div class="card mt">
+    <div class="card-head"><div><h2>4. Alert contact <span class="muted small" style="font-weight:400">(optional)</span></h2>
+      <p>Receives a &ldquo;claim registered&rdquo; message now and an update at every step, by WhatsApp and email</p></div></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="wide field"><label>Name on the messages</label>
+          <input name="contact_name" id="contactName" value="{{ form.contact_name or '' }}" placeholder="Defaults to the patient's name" maxlength="80"></div>
+        <div class="field"><label>WhatsApp number</label>
+          <input name="contact_whatsapp" value="{{ form.contact_whatsapp or '' }}" placeholder="98765 43210" inputmode="tel"></div>
+        <div class="field"><label>Email</label>
+          <input name="contact_email" type="email" value="{{ form.contact_email or '' }}" placeholder="name@gmail.com"></div>
+      </div>
+      <p class="small muted" style="margin:0">Give a number only with the person's consent. With the Twilio WhatsApp sandbox the number must first send the <i>join</i> code to +1 415 523 8886.</p>
+    </div>
+  </div>
 </div>
 
 <div>
@@ -98,9 +114,15 @@ async function lookup() {
   info.innerHTML = `<b>${data.plan}</b> &middot; ${data.insurer}<br>Status <b>${data.status}</b> &middot; cover ${data.start_date.slice(0,10)} to ${data.end_date.slice(0,10)}<br>
     Sum insured ${CS.inr(data.sum_insured)} &middot; available <b>${CS.inr(data.available_cover)}</b> &middot; room rent ${rr} &middot; co-pay ${data.copay}%`;
   const keep = "{{ form.member_id or '' }}";
-  sel.innerHTML = data.members.map(m => `<option value="${m.member_id}" ${m.member_id === keep ? "selected" : ""}>${m.name} (${m.relation}, ${m.age} yrs)</option>`).join("");
+  sel.innerHTML = data.members.map(m => `<option value="${m.member_id}" data-name="${m.name}" ${m.member_id === keep ? "selected" : ""}>${m.name} (${m.relation}, ${m.age} yrs)</option>`).join("");
+  contactHint();
   network();
 }
+function contactHint() {
+  const opt = document.getElementById("member").selectedOptions[0];
+  document.getElementById("contactName").placeholder = opt && opt.dataset.name ? `Defaults to ${opt.dataset.name}` : "Defaults to the patient's name";
+}
+document.getElementById("member").addEventListener("change", contactHint);
 function network() {
   const opt = document.getElementById("hospital").selectedOptions[0];
   const el = document.getElementById("netInfo");

@@ -1,4 +1,5 @@
 """Email / WhatsApp alerts: transactional outbox, recipients, sender with retries (mock mode, fake providers)."""
+import re
 from datetime import datetime, timedelta
 
 import pytest
@@ -88,7 +89,7 @@ def test_live_alerts_go_only_to_demo_recipients(db, manager, live):
     claim = _decide(db, manager)
     alerts = list(db.notifications.find({"claim_number": claim["claim_number"]}))
     assert sorted(a["to"] for a in alerts) == ["+919876543210", "nirupam@example.org"]
-    assert all(a["status"] == "queued" and a["intended_for"].count("*") for a in alerts)
+    assert all(a["status"] == "queued" and a["intended_for"] == "copy" for a in alerts)
     counts = notify.process_due(db)
     assert counts["sent"] >= 2
     sent = list(db.notifications.find({"claim_number": claim["claim_number"]}))
@@ -195,3 +196,99 @@ def test_claim_page_lists_its_messages(db, manager):
         sign_in(c, "USR023")
         page = c.get(f"/claims/{claim['claim_number']}").text
         assert "Messages to the insured" in page and "simulated" in page
+
+
+# --------------------------------------------------------------------------- #
+# Alert contact on a new claim ("claim registered" message)
+# --------------------------------------------------------------------------- #
+def test_new_claim_with_contact_sends_registered_message(db, executive, live, monkeypatch):
+    import test_workflow
+    real = services.intimate_claim
+    monkeypatch.setattr(services, "intimate_claim", lambda d, form, user: real(
+        d, {**form, "contact_name": "Bhudev Singh", "contact_whatsapp": "91234 56780",
+            "contact_email": "bhudev@example.org"}, user))
+    number = test_workflow._new_claim(db, executive)
+    claim = db.claims.find_one({"claim_number": number})
+    assert claim["contact"]["name"] == "Bhudev Singh" and claim["contact"]["whatsapp"] == "+919123456780"
+    alerts = list(db.notifications.find({"claim_number": number, "event": "registered"}))
+    by_to = {a["to"]: a for a in alerts}
+    assert set(by_to) == {"+919123456780", "bhudev@example.org", "+919876543210", "nirupam@example.org"}
+    assert by_to["+919123456780"]["intended_for"] == "claim contact Bhudev Singh"
+    text = by_to["+919123456780"]["text"]
+    assert text.startswith("Dear Bhudev Singh,") and number in text and "registered" in text
+    assert claim["snapshot"]["member_name"] in text
+    notify.process_due(db)
+    assert any(to == "+919123456780" and "Dear Bhudev Singh" in body for to, _, body in live.sent)
+    # later updates greet the same contact
+    services.change_status(db, number, "Under Review", executive, "Documents verified")
+    services.change_status(db, number, "Query Raised", executive, "Send the discharge summary")
+    q = db.notifications.find_one({"claim_number": number, "event": "query_raised", "to": "+919123456780"})
+    assert q and q["text"].startswith("Dear Bhudev Singh,")
+
+
+def test_bad_contact_number_is_refused(db, executive, monkeypatch):
+    import test_workflow
+    real = services.intimate_claim
+    monkeypatch.setattr(services, "intimate_claim", lambda d, form, user: real(
+        d, {**form, "contact_whatsapp": "12345"}, user))
+    before = db.claims.count_documents({})
+    with pytest.raises(services.WorkflowError, match="Alert contact"):
+        test_workflow._new_claim(db, executive)
+    assert db.claims.count_documents({}) == before
+
+
+def test_contact_defaults_to_patient_name():
+    c = notify.parse_contact("", "+919123456780", "", "Pari Sen")
+    assert c["name"] == "Pari Sen" and c["email"] is None
+    assert notify.parse_contact("X", "", "", "Pari Sen") is None
+
+
+def test_whatsapp_delivery_status_is_recorded(db, monkeypatch):
+    class Twilioish(FakeProvider):
+        def status(self, sid):
+            return "undelivered", 63015
+    fake = Twilioish()
+    monkeypatch.setattr(notify, "provider", lambda channel: fake)
+    now = datetime.now()
+    _id = db.notifications.insert_one({
+        "claim_number": "CLM-DELIVERY", "event": "approved", "channel": "whatsapp", "to": "+919123456780",
+        "status": "sent", "attempts": 1, "text": "t", "created_at": now, "sent_at": now, "provider_id": "SM1",
+        "dedupe_key": f"delivery-{now.timestamp()}"}).inserted_id
+    assert notify.refresh_delivery(db) >= 1
+    doc = db.notifications.find_one({"_id": _id})
+    assert doc["delivery_status"] == "undelivered" and "joined the Twilio sandbox" in doc["delivery_error"]
+
+
+def test_new_claim_form_saves_the_alert_contact(db):
+    from datetime import timedelta
+    from web.app import app
+    pol = db.policies.find_one({"status": "Active", "first_inception_date": {"$lt": datetime(2021, 1, 1)},
+                                "available_cover": {"$gt": 500000}})
+    hosp = db.hospitals.find_one({"network.insurer_ids": pol["insurer_id"]})
+    adm = datetime.now() - timedelta(days=5)
+    form = {"policy_number": pol["policy_number"], "member_id": pol["insured_members"][0]["member_id"],
+            "hospital_id": hosp["hospital_id"], "primary_icd": "A90", "claim_type": "Cashless",
+            "admission_type": "Emergency", "admission_date": adm.strftime("%Y-%m-%d"),
+            "discharge_date": (adm + timedelta(days=2)).strftime("%Y-%m-%d"), "room_category": "General Ward",
+            "medicines": "15000", "room_charges": "4000",
+            "contact_name": "Bhudev Singh", "contact_whatsapp": "+91 91234 56780", "contact_email": ""}
+    with TestClient(app) as c:
+        sign_in(c, "USR011")
+        r = c.post("/claims/new", data=form)
+        assert r.status_code == 200 and "intimated successfully" in r.text and "Alert contact" in r.text
+        number = re.search(r"CLM-\d{4}-\d{6}", str(r.url)).group(0)
+    claim = db.claims.find_one({"claim_number": number})
+    assert claim["contact"] == {**claim["contact"], "name": "Bhudev Singh", "whatsapp": "+919123456780", "email": None}
+    assert db.notifications.count_documents({"claim_number": number, "event": "registered"}) == 2  # simulated
+
+
+def test_smtp_is_not_used_where_the_host_blocks_it(db, monkeypatch):
+    monkeypatch.setenv("CLAIMSURE_SMTP_USER", "me@gmail.com")
+    monkeypatch.setenv("CLAIMSURE_SMTP_PASSWORD", "abcd efgh ijkl mnop")
+    assert isinstance(notify.provider("email"), notify.SMTPEmail)
+    monkeypatch.setenv("RENDER", "true")  # set by Render on every service
+    assert notify.provider("email") is None
+    assert "blocks SMTP" in notify.channel_state(db)["email"]["reason"]
+    monkeypatch.setenv("CLAIMSURE_BREVO_API_KEY", "xkeysib-test")
+    monkeypatch.setenv("CLAIMSURE_EMAIL_FROM", "me@gmail.com")
+    assert isinstance(notify.provider("email"), notify.BrevoEmail)

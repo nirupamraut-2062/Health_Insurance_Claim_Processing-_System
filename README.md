@@ -39,7 +39,7 @@ The full design rationale is in **[docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN
 | **Administration** | Views, a `$merge` materialised view, schema versioning with migration, a bulk-write renewal batch job, backup and restore |
 | **Business logic** | Adjudication engine (waiting periods, room-rent proportionate deduction, sub-limits, co-pay, sum-insured cap), approval-limit escalation, an 11-state claim workflow, fraud scoring with 9 red-flag rules |
 | **Interfaces** | A web application with 15+ pages, an interactive CLI, 8 mongosh scripts and a REST/JSON API for the charts |
-| **Quality** | 122 mock-mode tests plus 34 live tests that run against a real MongoDB replica set (`python main.py test-live`) |
+| **Quality** | 128 mock-mode tests plus 34 live tests that run against a real MongoDB replica set (`python main.py test-live`) |
 
 ---
 
@@ -57,7 +57,7 @@ Other commands:
 ```bash
 python main.py              # interactive console menu
 python main.py report       # KPI summary + insurer / product / rejection reports
-python main.py test         # 122 tests on the in-memory mock
+python main.py test         # 128 tests on the in-memory mock
 python main.py generate     # regenerate data/*.json (deterministic)
 ```
 
@@ -113,7 +113,12 @@ The permission matrix is defined once in `claimsure/auth.py`. The web routes, th
 
 ## Claim alerts by email and WhatsApp
 
-When a claim is approved, partially approved, rejected or paid, or when a query is raised, the insured gets a message on both channels.
+When a claim is registered, approved, partially approved, rejected or paid, or when a query is raised, a message goes out on both channels.
+
+**Who receives it:**
+- **The claim's alert contact.** It is entered on **New Claim** (section 4: name, WhatsApp number, email) with the person's consent. Every message greets that name, e.g. *"Dear Bhudev Singh, your claim CLM-2026-002592 has been registered…"*.
+- **A copy** goes to the recipients the Head Admin sets on the **Alerts** page.
+- **Never the member contacts in the data set.** They are synthetic and stay masked.
 
 **How it works:**
 - **Outbox in the same transaction.** The claim update, the audit entry and one `notifications` document per recipient are committed together. A rolled-back settlement therefore never tells anyone they were paid.
@@ -127,7 +132,8 @@ When a claim is approved, partially approved, rejected or paid, or when a query 
   - unique `dedupe_key`, so a message is never written twice
   - per-claim index
   - TTL index with `partialFilterExpression: {status: "sent"}`, which deletes sent messages after 180 days
-- **Safe recipients.** Member contacts are synthetic, so alerts go only to the recipients set on the **Alerts** page (Head Admin). Each message keeps a masked copy of the member contact it was meant for. If a channel is not configured, messages are still written with status *simulated*.
+- **Delivery status.** For WhatsApp, the sender asks Twilio whether each message was *delivered*, *read* or *undelivered*, and shows the reason in plain words, e.g. "this number has not joined the sandbox".
+- **Simulated mode.** If a channel is not configured, messages are still written, with status *simulated*.
 
 **Providers (in `.env` locally, and in Render → Environment for the public site):**
 
@@ -135,7 +141,7 @@ When a claim is approved, partially approved, rejected or paid, or when a query 
 # Email, option A: Gmail (Google Account → Security → 2-Step Verification → App passwords)
 CLAIMSURE_SMTP_USER=yourname@gmail.com
 CLAIMSURE_SMTP_PASSWORD=abcd efgh ijkl mnop
-# Email, option B: Brevo HTTPS API (use it if the host blocks SMTP ports)
+# Email, option B: Brevo HTTPS API - REQUIRED on Render's free plan, which blocks SMTP ports since Sept 2025
 CLAIMSURE_BREVO_API_KEY=xkeysib-...
 CLAIMSURE_EMAIL_FROM=yourname@gmail.com      # a sender verified in Brevo
 # WhatsApp: Twilio (sandbox number +1 415 523 8886 by default)
@@ -143,7 +149,7 @@ CLAIMSURE_TWILIO_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 CLAIMSURE_TWILIO_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-**Twilio sandbox:** each recipient first sends the sandbox *join* code to +1 415 523 8886 on WhatsApp. WhatsApp then allows free-form messages for 24 hours after that person's last message, so send the code again before a demo.
+**Twilio sandbox:** every number that should receive WhatsApp messages, yours and the claim contact's, must first send the sandbox *join* code (Twilio console → Messaging → Try it out) to **+1 415 523 8886**. WhatsApp then allows free-form messages for 24 hours after that number's last message. If the window is closed, Twilio refuses the message with error 21654 or 63016, and the Alerts page explains what to do. Send the join code again on the morning of the demo.
 
 ## Public deployment (Render + Atlas)
 
@@ -402,7 +408,7 @@ main.py               CLI entry point
 ## Testing
 
 ```bash
-python main.py test              # 122 tests on the in-memory mock
+python main.py test              # 128 tests on the in-memory mock
 python main.py test-live         # 34 tests on the real MongoDB in .env (separate claimsure_test database)
 ```
 

@@ -35,6 +35,7 @@
         <table class="kv">
           <tr><td>Patient</td><td><a href="/members/{{ c.member_id }}" class="strong">{{ c.snapshot.member_name }}</a> <span class="muted">({{ c.member_id }})</span><br>
             <span class="small">{{ c.snapshot.member_gender }}, {{ c.snapshot.member_age }} yrs at admission &middot; {{ c.snapshot.relation }}</span></td></tr>
+          {% if c.contact %}<tr><td>Alert contact</td><td>{{ c.contact.name }}<div class="small muted">{{ c.contact.whatsapp or '' }}{{ ' &middot; '|safe if c.contact.whatsapp and c.contact.email }}{{ c.contact.email or '' }}</div></td></tr>{% endif %}
           {% if member and member.pre_existing_conditions %}<tr><td>Declared PED</td><td>{% for p in member.pre_existing_conditions %}<span class="tag">{{ p }}</span>{% endfor %}</td></tr>{% endif %}
           <tr><td>Policy</td><td><a href="/policies/{{ c.policy_number }}" class="mono">{{ c.policy_number }}</a> {{ m.pill(policy.status, 'green' if policy.status == 'Active' else 'gray') }}</td></tr>
           <tr><td>Plan</td><td>{{ plan.name }}<div class="small muted">{{ policy.policy_type }} &middot; since {{ policy.first_inception_date|date }}</div></td></tr>
@@ -327,7 +328,8 @@
     <div class="card-head"><div><h2>Messages to the insured</h2><p>Written with the decision, in the same transaction</p></div>{% if 'alerts.view' in perms %}<a class="small" href="/alerts?claim={{ c.claim_number }}">Outbox</a>{% endif %}</div>
     <div class="card-body">{% for a in alerts %}
       <div class="stat-row small"><div><b>{{ alert_events.get(a.event, a.event) }}</b> &middot; {{ 'Email' if a.channel == 'email' else 'WhatsApp' }}
-        <div class="muted">{{ a.to }} &middot; {{ (a.sent_at or a.created_at)|datetime }}</div></div>
+        <div class="muted">{{ a.to }} &middot; {{ (a.sent_at or a.created_at)|datetime }}{% if a.delivery_status %} &middot; WhatsApp: {{ a.delivery_status }}{% endif %}</div>
+        {% if a.delivery_error %}<div style="color:var(--red)">{{ a.delivery_error }}</div>{% endif %}</div>
         {{ m.pill(a.status, {'sent': 'green', 'queued': 'amber', 'sending': 'blue', 'failed': 'red', 'simulated': 'purple'}[a.status]) }}</div>
     {% endfor %}</div>
   </div>

@@ -528,6 +528,11 @@ def intimate_claim(db, form, user):
         raise WorkflowError("Enter the hospital bill break-up")
     room_rent = int(float(form.get("room_rent_per_day") or 0)) or (bill["room_charges"] // max(los - icu_days, 1)) \
         or ROOM_TARIFF[room_category][tier]
+    try:  # who receives the email / WhatsApp updates for this claim (optional)
+        contact = notify.parse_contact(form.get("contact_name"), form.get("contact_whatsapp"),
+                                       form.get("contact_email"), member["name"])
+    except ValueError as exc:
+        raise WorkflowError(f"Alert contact: {exc}")
     now = datetime.now()
     claim_number = f"CLM-{now.year}-{next_id(db, 'claim'):06d}"
     insurer = db.insurers.find_one({"insurer_id": policy["insurer_id"]}, {"name": 1})
@@ -586,6 +591,7 @@ def intimate_claim(db, form, user):
                       for d in DOCUMENT_TYPES[claim_type]],
         "status_history": [_history(INTIMATED, user, form.get("remarks") or "Claim intimated", now)],
         "payment": None,
+        "contact": contact,
         "created_at": now,
         "updated_at": now,
     }
@@ -593,12 +599,17 @@ def intimate_claim(db, form, user):
     scored = fraud.score_with_context(claim, policy["first_inception_date"], context)
     scored.update(scanned_at=now, review_status="Not Required" if scored["risk_level"] == "Low" else "Not Reviewed")
     claim["fraud"] = scored
-    with write_lock:
-        insert_validated(db, "claims", claim)
+
+    def body(tx):  # claim + audit entry + "claim registered" alerts: all or nothing
+        tx.insert_one("claims", claim)
         audit.log(db, user, "CLAIM_INTIMATED", "claim", claim_number,
                   f"{claim_number} intimated for {member['name']} at {hospital['name']}",
-                  {"claimed": bill["total"], "type": claim_type})
-        mark_changed()
+                  {"claimed": bill["total"], "type": claim_type, "alert_contact": bool(contact)}, session=tx)
+        notify.enqueue(tx, db, "registered", claim, 0)
+
+    run_transaction(db, body)
+    notify.wake()
+    mark_changed()
     return claim_number
 
 

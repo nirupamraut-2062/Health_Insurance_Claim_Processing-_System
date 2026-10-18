@@ -58,10 +58,19 @@ Before the review:
    - As `USR023`, open **Reopen case for re-verification**, give a reason and assign it to the Fraud Analyst `USR021`. The claim moves to **Re-verification** and lands in her queue.
    - Sign in as `USR021` and choose **Settlement flagged for recovery**. The claim returns to Settled with a recovery flag, and the payment is not made a second time.
    - For a **Rejected** claim, the verifier can choose *re-adjudicate* instead: the old decision moves to `previous_adjudications`.
-9. **Alerts**: right after the decision and the payment, the phones show WhatsApp messages and the inboxes show emails.
-   - Open **Alerts**: each message is a document in `notifications`, written in the same transaction as the decision.
+9. **Alerts (live, on your friend's phone)**:
+   - **Before the review:**
+     - Your phone and your friend's phone each send the Twilio sandbox *join* code to **+1 415 523 8886** on WhatsApp.
+     - As Head Admin, open **Alerts** and press **Send test message**.
+   - **New Claim**: fill the claim as usual. In **4. Alert contact**, type your friend's name and WhatsApp number, then **Submit**.
+     - Within seconds, his phone shows *"Dear <his name>, your claim CLM-… has been registered"*, with the patient, hospital and amount from the claim.
+     - Your phone and email get a copy.
+   - Move the claim to Under Review and **Record decision**: he receives *APPROVED* (with the amount and deductions) or *REJECTED* (with the reason).
+   - **Pay**: he receives *PAID*, with the bank reference (UTR).
+   - Open **Alerts**:
+     - Each message is a document in `notifications`, written in the same transaction as the decision.
+     - The WhatsApp column shows *delivered* or *read*.
    - Show the *Simulate failure* settlement: no "paid" message was written, because the outbox rolled back with it.
-   - Before the review, send the Twilio sandbox *join* code from both phones, then press **Send test message**.
 
 ### 5. Database features (6 min)
 - **Concurrency Lab → Run all four scenarios**: two adjusters pay against one policy at the same time.
@@ -98,7 +107,7 @@ Before the review:
 
 ### 6. Wrap-up (1 min)
 - CLI (`python main.py`) shows the same features in a terminal.
-- `python main.py test` runs 122 tests on the mock, and `python main.py test-live` runs 34 more on Atlas.
+- `python main.py test` runs 128 tests on the mock, and `python main.py test-live` runs 34 more on Atlas.
 - The app is deployed publicly (Render + Atlas), and the evaluators can open it from their phones.
 - mongosh scripts 01–09 cover window functions, `$dateDiff` with `$percentile`, `$merge`, `$geoNear`, `$text`, `explain()` and roles.
 - The design rationale is in `docs/DATABASE_DESIGN.md`: ER model, relational comparison, CAP, shard keys, backup and security.

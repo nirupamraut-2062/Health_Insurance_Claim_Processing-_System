@@ -29,7 +29,7 @@
       <p>{{ st.provider or 'No provider configured' }}</p></div>
       {{ m.pill('LIVE' if st.live else 'SIMULATED', 'green' if st.live else 'amber') }}</div>
     <div class="card-body">
-      {% if st.live %}<p class="small" style="margin-top:0">Every claim alert is delivered to: <b>{{ st.recipients|join(', ') }}</b></p>
+      {% if st.live %}<p class="small" style="margin-top:0">Sent to each claim's alert contact{% if st.recipients %}, with a copy to <b>{{ st.recipients|join(', ') }}</b>{% else %} (no copy recipients set){% endif %}.</p>
       {% else %}<p class="small" style="margin-top:0">Not sending: <b>{{ st.reason }}</b>. Alerts are still written to the outbox with status <i>simulated</i>.</p>{% endif %}
       {% if ch == 'email' %}<p class="small muted" style="margin:0">Set <code>CLAIMSURE_SMTP_USER</code> and <code>CLAIMSURE_SMTP_PASSWORD</code> (a Gmail app password), or <code>CLAIMSURE_BREVO_API_KEY</code> and <code>CLAIMSURE_EMAIL_FROM</code>, in <code>.env</code> or the hosting environment.</p>
       {% else %}<p class="small muted" style="margin:0">Set <code>CLAIMSURE_TWILIO_SID</code> and <code>CLAIMSURE_TWILIO_TOKEN</code>. With the Twilio sandbox, each recipient first sends the sandbox's <i>join</i> code to +1 415 523 8886 on WhatsApp.</p>{% endif %}
@@ -40,7 +40,7 @@
 
 {% if 'alerts.manage' in perms %}
 <div class="card mt">
-  <div class="card-head"><div><h2>Recipients</h2><p>The data set is synthetic, so alerts never go to member contacts. They go to these addresses, and each message records whom it was meant for.</p></div>
+  <div class="card-head"><div><h2>Copy recipients</h2><p>Every alert goes to the claim's alert contact (entered on New Claim), and a copy goes to these addresses. Member contacts in the synthetic data are never messaged.</p></div>
     {% if settings.updated_at %}<span class="small muted">Saved {{ settings.updated_at|datetime }} by {{ staff[settings.updated_by].name if settings.updated_by in staff else settings.updated_by }}</span>{% endif %}</div>
   <form class="card-body" method="post" action="/alerts/settings">
     <div class="grid g2">
@@ -77,10 +77,10 @@
         <td>{% if n.claim_number %}<a href="/claims/{{ n.claim_number }}">{{ n.claim_number }}</a>{% else %}<span class="muted">-</span>{% endif %}</td>
         <td>{{ events.get(n.event, n.event) }}</td>
         <td>{{ m.pill('Email' if n.channel == 'email' else 'WhatsApp', 'blue' if n.channel == 'email' else 'green') }}</td>
-        <td class="small"><span class="mono">{{ n.to }}</span>{% if n.intended_for and n.intended_for != '-' and n.status != 'simulated' %}<div class="sub">for member {{ n.intended_for }}</div>{% endif %}</td>
+        <td class="small"><span class="mono">{{ n.to }}</span>{% if n.intended_for and n.intended_for != '-' %}<div class="sub">{{ n.intended_for }}</div>{% endif %}</td>
         <td>{{ m.pill(n.status, {'sent': 'green', 'queued': 'amber', 'sending': 'blue', 'failed': 'red', 'simulated': 'purple'}[n.status]) }}
           {% if n.attempts %}<div class="sub">{{ n.attempts }} attempt(s)</div>{% endif %}</td>
-        <td class="small">{% if n.status == 'sent' %}{{ n.sent_at|datetime }} via {{ n.provider }}{% elif n.last_error %}<span class="muted">{{ n.last_error }}</span>{% endif %}
+        <td class="small">{% if n.status == 'sent' %}{{ n.sent_at|datetime }} via {{ n.provider }}{% if n.delivery_status %}<div>WhatsApp: <b>{{ n.delivery_status }}</b></div>{% endif %}{% if n.delivery_error %}<div style="color:var(--red)">{{ n.delivery_error }}</div>{% endif %}{% elif n.last_error %}<span class="muted">{{ n.last_error }}</span>{% endif %}
           <details><summary class="small">Message</summary><pre class="small" style="white-space:pre-wrap;margin:6px 0 0;font-family:inherit">{{ n.text }}</pre></details></td>
         <td class="right">{% if n.status == 'failed' and 'alerts.manage' in perms %}<form method="post" action="/alerts/{{ n._id }}/resend"><button class="btn sm">Resend</button></form>{% endif %}</td>
       </tr>

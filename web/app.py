@@ -124,8 +124,9 @@ class LoginRequired:
                 return await response(scope, receive, send_secure)
             scope.setdefault("state", {})["user"] = user
             if user["must_change_password"] and path not in PASSWORD_CHANGE_PATHS:
-                response = redirect("/account", "Your password was reset by the Head Admin. Choose a new password "
-                                                "to continue.", "warning")
+                response = redirect("/account", "You are signed in with a temporary password, so the other pages "
+                                                "are locked. Set your own password below to unlock ClaimSure.",
+                                    "warning")
                 return await response(scope, receive, send_secure)
         await self.app(scope, receive, send_secure)
 
@@ -545,7 +546,9 @@ def alerts_test(request: Request):
 def alerts_process(request: Request):
     auth.require(current_user(request), "alerts.manage")
     counts = notify.process_due(db())
-    return redirect("/alerts", f"Sender run: {counts['sent']} sent, {counts['retry']} to retry, {counts['failed']} failed.")
+    checked = notify.refresh_delivery(db())
+    return redirect("/alerts", f"Sender run: {counts['sent']} sent, {counts['retry']} to retry, {counts['failed']} failed; "
+                               f"WhatsApp delivery checked for {checked} message(s).")
 
 
 @app.post("/alerts/{notification_id}/resend")

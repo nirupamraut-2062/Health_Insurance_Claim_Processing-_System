@@ -205,6 +205,15 @@
       "admission_type": {"enum": ["Planned", "Emergency"]},
       "status": {"enum": ["Intimated", "Documents Pending", "Under Review", "Query Raised", "Escalated",
                           "Approved", "Partially Approved", "Rejected", "Settled", "Withdrawn", "Re-verification"]},
+      "contact": {
+        "bsonType": ["object", "null"],
+        "required": ["name"],
+        "properties": {
+          "name": {"bsonType": "string", "minLength": 1},
+          "whatsapp": {"bsonType": ["string", "null"], "pattern": "^\\+[1-9][0-9]{9,14}$"},
+          "email": {"bsonType": ["string", "null"], "pattern": "^[^@\\s]+@[^@\\s]+\\.[A-Za-z]{2,}$"}
+        }
+      },
       "diagnosis": {
         "bsonType": "array",
         "minItems": 1,

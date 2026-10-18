@@ -12,10 +12,12 @@ How a message travels:
    with exponential backoff, and gives up after ``MAX_ATTEMPTS``.
 
 Recipients: the data set is synthetic, and member phone numbers may belong to
-real people, so messages are only ever delivered to the demo recipients the
-Head Admin configures (stored in ``settings``). Each message keeps a masked copy
-of the member contact it was meant for. When a channel is not configured, the
-message is still written, with status "simulated", so the outbox can be shown.
+real people, so the member contact on file is never messaged. A message goes to
+(a) the alert contact entered on the claim at intimation (name, WhatsApp number,
+email - given with the claimant's consent), and (b) a copy to the recipients the
+Head Admin configures (stored in ``settings``). When a channel is not
+configured, the message is still written, with status "simulated", so the
+outbox can be shown.
 
 Providers (credentials in .env or the hosting platform's environment):
     email     CLAIMSURE_SMTP_USER + CLAIMSURE_SMTP_PASSWORD  (Gmail app password), or
@@ -26,6 +28,7 @@ import os
 import re
 import smtplib
 import threading
+import time
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 from email.utils import make_msgid
@@ -42,6 +45,7 @@ MAX_ATTEMPTS = 5
 STALE_SENDING = timedelta(minutes=5)
 SENT_RETENTION_DAYS = 180
 EVENTS = {
+    "registered": "Claim registered",
     "approved": "Claim approved",
     "partially_approved": "Claim partially approved",
     "rejected": "Claim rejected",
@@ -97,11 +101,16 @@ def _html(subject, text):
             f"synthetic).</div></div>")
 
 
+def smtp_blocked():
+    """Render's free web services block outbound SMTP (ports 25/465/587) since September 2025."""
+    return bool(_env("RENDER")) and _env("CLAIMSURE_SMTP_ALLOWED") != "1"
+
+
 class SMTPEmail:
     label = "Gmail SMTP"
 
     def configured(self):
-        return bool(_env("CLAIMSURE_SMTP_USER") and _env("CLAIMSURE_SMTP_PASSWORD"))
+        return bool(_env("CLAIMSURE_SMTP_USER") and _env("CLAIMSURE_SMTP_PASSWORD")) and not smtp_blocked()
 
     def send(self, to, subject, text):
         user = _env("CLAIMSURE_SMTP_USER")
@@ -113,7 +122,7 @@ class SMTPEmail:
         msg.add_alternative(_html(subject, text), subtype="html")
         try:
             with smtplib.SMTP(_env("CLAIMSURE_SMTP_HOST", "smtp.gmail.com"), int(_env("CLAIMSURE_SMTP_PORT", "587")),
-                              timeout=20) as smtp:
+                              timeout=10) as smtp:
                 smtp.starttls()
                 smtp.login(user, _env("CLAIMSURE_SMTP_PASSWORD").replace(" ", ""))
                 smtp.send_message(msg)
@@ -166,11 +175,35 @@ class TwilioWhatsApp:
         if r.status_code >= 300:
             try:
                 body = r.json()
-                detail = f"{body.get('code')}: {body.get('message')}"
+                code = body.get("code")
+                detail = TWILIO_ERRORS.get(code) or f"{code}: {body.get('message')}"
             except ValueError:
                 detail = r.text[:200]
-            raise DeliveryError(f"Twilio {r.status_code} {detail}", 400 <= r.status_code < 500 and r.status_code != 429)
+            raise DeliveryError(f"Twilio {r.status_code}: {detail}", 400 <= r.status_code < 500 and r.status_code != 429)
         return r.json().get("sid", "")
+
+    def status(self, sid):
+        """Delivery status reported by WhatsApp through Twilio: (status, error_code)."""
+        import httpx
+        account = _env("CLAIMSURE_TWILIO_SID")
+        r = httpx.get(f"https://api.twilio.com/2010-04-01/Accounts/{account}/Messages/{sid}.json", timeout=15,
+                      auth=(account, _env("CLAIMSURE_TWILIO_TOKEN")))
+        r.raise_for_status()
+        body = r.json()
+        return body.get("status"), body.get("error_code")
+
+
+NO_SESSION = ("no open WhatsApp session with this number - from that phone, send the sandbox join code "
+              "(Twilio console > Messaging > Try it out) to +1 415 523 8886, then try again within 24 hours")
+TWILIO_ERRORS = {
+    21654: NO_SESSION,  # Twilio wants a template because the number has not messaged the sandbox
+    63016: NO_SESSION,
+    63015: "this number has not joined the Twilio sandbox - send the join code to +1 415 523 8886 first",
+    63003: "the number is not on WhatsApp",
+    21211: "invalid phone number",
+    21408: "WhatsApp to this country is not enabled on the Twilio account",
+}
+FINAL_DELIVERY = {"delivered", "read", "undelivered", "failed"}
 
 
 def provider(channel):
@@ -189,7 +222,7 @@ def simulated_only():
 
 
 # --------------------------------------------------------------------------- #
-# Settings (demo recipients) - edited by the Head Admin
+# Settings (copy recipients) - edited by the Head Admin
 # --------------------------------------------------------------------------- #
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$")
 PHONE_RE = re.compile(r"^\+[1-9][0-9]{9,14}$")
@@ -229,7 +262,7 @@ def save_settings(db, user, email_enabled, email_raw, whatsapp_enabled, whatsapp
 
 
 def channel_state(db, settings=None):
-    """For each channel: is it live, which provider, and why not if it is not."""
+    """For each channel: can it send (live), which provider, and why not if it cannot."""
     settings = settings or get_settings(db)
     out = {}
     for ch in CHANNELS:
@@ -237,15 +270,25 @@ def channel_state(db, settings=None):
         reason = None
         if simulated_only():
             reason = "simulation mode (CLAIMSURE_NOTIFY_MODE=simulate)"
+        elif not p and ch == "email" and smtp_blocked() and _env("CLAIMSURE_SMTP_USER"):
+            reason = "this host blocks SMTP (Render free plan) - set CLAIMSURE_BREVO_API_KEY and CLAIMSURE_EMAIL_FROM"
         elif not p:
             reason = "provider not configured"
         elif not settings[ch]["enabled"]:
             reason = "switched off by the Head Admin"
-        elif not settings[ch]["recipients"]:
-            reason = "no recipients configured"
         out[ch] = {"live": reason is None, "provider": p.label if p else None, "reason": reason,
                    "recipients": settings[ch]["recipients"], "enabled": settings[ch]["enabled"]}
     return out
+
+
+def parse_contact(name, whatsapp, email, patient_name):
+    """The alert contact typed on a new claim (all optional). Raises ValueError on a bad number/email."""
+    whatsapp = parse_recipients("whatsapp", whatsapp)[:1]
+    email = parse_recipients("email", email)[:1]
+    if not whatsapp and not email:
+        return None
+    return {"name": (name or "").strip()[:80] or patient_name, "whatsapp": whatsapp[0] if whatsapp else None,
+            "email": email[0] if email else None, "consent_at": datetime.now()}
 
 
 # --------------------------------------------------------------------------- #
@@ -269,8 +312,18 @@ def compose(event, claim):
     who, number = snap.get("member_name", "the patient"), claim["claim_number"]
     where = snap.get("hospital_name", "the hospital")
     adj = claim.get("adjudication") or {}
-    head = f"Dear policyholder,\nUpdate on claim *{number}* for {who} at {where}."
-    if event in ("approved", "partially_approved"):
+    greeting = f"Dear {(claim.get('contact') or {}).get('name') or 'policyholder'},"
+    head = f"{greeting}\nUpdate on claim *{number}* for {who} at {where}."
+    if event == "registered":
+        admitted = claim.get("admission_date")
+        lines = [greeting, f"Your claim *{number}* has been registered with ClaimSure.",
+                 f"Patient: {who}", f"Hospital: {where}" + (f" (admitted {admitted:%d %b %Y})" if admitted else ""),
+                 f"Claim type: {claim.get('claim_type', '-')} - amount claimed *{inr(claim.get('claimed_amount', 0))}*.",
+                 "Our team will now verify the documents. You will receive a message at every step: "
+                 "approval or rejection, and payment.",
+                 f"Please quote {number} in all communication."]
+        subject = f"Claim {number} registered"
+    elif event in ("approved", "partially_approved"):
         payable, claimed = adj.get("payable_amount", claim.get("approved_amount", 0)), claim.get("claimed_amount", 0)
         top = sorted(adj.get("deductions", []), key=lambda d: -d.get("amount", 0))[:3]
         lines = [head, f"Status: *{'APPROVED' if event == 'approved' else 'PARTIALLY APPROVED'}*",
@@ -307,25 +360,38 @@ def compose(event, claim):
 # Outbox
 # --------------------------------------------------------------------------- #
 def build(db, event, claim, version, state=None):
-    """Outbox documents for a claim event (to be inserted by the caller's transaction)."""
+    """Outbox documents for a claim event (to be inserted by the caller's transaction).
+
+    Recipients per channel: the claim's alert contact (if one was given), then a
+    copy to each Head Admin-configured recipient. The member contact on file is
+    synthetic and is only recorded, masked, never messaged.
+    """
     member = db.members.find_one({"member_id": claim["member_id"]}, {"contact": 1}) or {}
-    contact = member.get("contact") or {}
-    intended = {"email": mask_email(contact.get("email")), "whatsapp": mask_phone(contact.get("phone"))}
+    on_file = member.get("contact") or {}
+    masked = {"email": mask_email(on_file.get("email")), "whatsapp": mask_phone(on_file.get("phone"))}
+    contact = claim.get("contact") or {}
     subject, text = compose(event, claim)
     state = state or channel_state(db)
     now = datetime.now()
     docs = []
     for ch in CHANNELS:
         base = {"claim_number": claim["claim_number"], "member_id": claim["member_id"], "event": event,
-                "channel": ch, "subject": subject, "text": text, "intended_for": intended[ch], "attempts": 0,
+                "channel": ch, "subject": subject, "text": text, "attempts": 0,
                 "created_at": now, "next_attempt_at": now, "sent_at": None, "provider": None,
                 "provider_id": None, "last_error": None}
-        if state[ch]["live"]:
-            for to in state[ch]["recipients"]:
+        recipients = []
+        if contact.get(ch):
+            recipients.append((contact[ch], f"claim contact {contact.get('name', '')}".strip()))
+        recipients += [(r, "copy") for r in state[ch]["recipients"] if r != contact.get(ch)]
+        if state[ch]["live"] and recipients:
+            for to, role in recipients:
                 docs.append({**base, "to": to, "status": "queued", "provider": state[ch]["provider"],
+                             "intended_for": role,
                              "dedupe_key": f"{claim['claim_number']}:{event}:v{version}:{ch}:{to}"})
         else:
-            docs.append({**base, "to": intended[ch], "status": "simulated", "last_error": state[ch]["reason"],
+            to = contact.get(ch) or masked[ch]
+            docs.append({**base, "to": to, "status": "simulated", "intended_for": "claim contact" if contact.get(ch)
+                         else "member on file (masked)", "last_error": state[ch]["reason"] or "no recipient",
                          "dedupe_key": f"{claim['claim_number']}:{event}:v{version}:{ch}:simulated"})
     return docs
 
@@ -387,6 +453,26 @@ def process_due(db, limit=25, providers=None):
     return counts
 
 
+def refresh_delivery(db, limit=20):
+    """Ask Twilio what happened to recent WhatsApp messages (delivered, read, undelivered...)."""
+    p = provider("whatsapp")
+    if not p or not hasattr(p, "status"):
+        return 0
+    since = datetime.now() - timedelta(hours=6)
+    checked = 0
+    for doc in db.notifications.find({"channel": "whatsapp", "status": "sent", "sent_at": {"$gte": since},
+                                      "delivery_status": {"$nin": list(FINAL_DELIVERY)}}).limit(limit):
+        try:
+            status, code = p.status(doc["provider_id"])
+        except Exception:
+            continue
+        error = TWILIO_ERRORS.get(code, f"WhatsApp error {code}") if code else None
+        db.notifications.update_one({"_id": doc["_id"]}, {"$set": {
+            "delivery_status": status, "delivery_error": error, "delivery_checked_at": datetime.now()}})
+        checked += 1
+    return checked
+
+
 def resend(db, notification_id):
     from bson import ObjectId
     res = db.notifications.update_one({"_id": ObjectId(notification_id), "status": "failed"}, {"$set": {
@@ -416,6 +502,16 @@ def send_test(db, user):
             outcome = deliver(db, doc)
             after = db.notifications.find_one({"_id": doc["_id"]}, {"last_error": 1})
             results.append((ch, to, "sent" if outcome == "sent" else f"failed: {after.get('last_error')}"))
+    if any(ch == "whatsapp" and r == "sent" for ch, _, r in results):
+        time.sleep(4)  # give WhatsApp a moment, then report delivery
+        refresh_delivery(db)
+        for i, (ch, to, r) in enumerate(results):
+            if ch == "whatsapp" and r == "sent":
+                d = db.notifications.find_one({"to": to, "event": "test"}, sort=[("created_at", -1)]) or {}
+                if d.get("delivery_error"):
+                    results[i] = (ch, to, f"accepted by Twilio but not delivered: {d['delivery_error']}")
+                elif d.get("delivery_status"):
+                    results[i] = (ch, to, f"sent (WhatsApp status: {d['delivery_status']})")
     return results
 
 
@@ -461,6 +557,7 @@ def start_worker(get_db, interval=15):
         while True:
             try:
                 process_due(get_db())
+                refresh_delivery(get_db())
             except Exception as exc:  # keep the sender alive; the next pass retries
                 print(f"  [!] notification sender: {exc}")
             _wake.wait(interval)

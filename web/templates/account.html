@@ -9,6 +9,22 @@
   </div>
 </div>
 
+{% if user.must_change_password %}
+<div class="card mb" style="border:2px solid var(--amber);max-width:620px">
+  <div class="card-head"><div><h2>Step 1: set your own password</h2>
+    <p>You signed in with a temporary password. Until you replace it, every other page brings you back here.</p></div></div>
+  <div class="card-body">
+    <form method="post" action="/account/password" autocomplete="off">
+      <div class="field"><label>Temporary password (the one you just used)</label><input type="password" name="current" autocomplete="current-password" required autofocus></div>
+      <div class="field"><label>New password</label><input type="password" name="new" autocomplete="new-password" minlength="{{ min_password }}" required></div>
+      <div class="field"><label>Repeat new password</label><input type="password" name="confirm" autocomplete="new-password" minlength="{{ min_password }}" required></div>
+      <p class="small muted" style="margin:0 0 10px">At least {{ min_password }} characters, with letters and digits, for example <i>Claims2026!</i></p>
+      <button class="btn primary">Save password and unlock ClaimSure</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
 <div class="grid g4">
   {{ m.kpi("Role", user.role, user.department ~ " &middot; " ~ user.region, "accent") }}
   <div class="card kpi pink"><div class="label">Access level</div><div class="value"><span class="level l{{ {'Head Admin': 3, 'Supervisor': 2}.get(level, 1) }}" style="font-size:18px">{{ level }}</span></div><div class="sub">{{ perms|length }} of {{ matrix|length }} permissions</div></div>
@@ -17,10 +33,10 @@
 </div>
 
 <div class="grid g2 mt">
+  {% if not user.must_change_password %}
   <div class="card">
     <div class="card-head"><div><h2>Change password</h2><p>At least {{ min_password }} characters, with letters and digits. Other sessions are signed out.</p></div></div>
     <div class="card-body">
-      {% if user.must_change_password %}<div class="alert warning"><b>You are using a temporary password.</b> Choose your own to continue.</div>{% endif %}
       <form method="post" action="/account/password" autocomplete="off">
         <div class="field"><label>Current password</label><input type="password" name="current" autocomplete="current-password" required></div>
         <div class="field"><label>New password</label><input type="password" name="new" autocomplete="new-password" minlength="{{ min_password }}" required></div>
@@ -29,6 +45,7 @@
       </form>
     </div>
   </div>
+  {% endif %}
 
   <div class="card">
     <div class="card-head"><div><h2>What I can do</h2><p>Permissions come from your role; only the Head Admin can change it.</p></div></div>
