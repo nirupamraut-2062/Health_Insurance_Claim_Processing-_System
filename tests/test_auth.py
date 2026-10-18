@@ -25,7 +25,7 @@ def anon(app):
 @pytest.fixture()
 def admin_client(app):
     with TestClient(app) as c:
-        sign_in(c, "USR001")
+        sign_in(c, "USR023")
         yield c
 
 
@@ -57,7 +57,7 @@ def test_sign_in_with_email_and_sign_out(anon, db):
 
 
 def test_passwords_are_hashed(db):
-    cred = db.credentials.find_one({"user_id": "USR001"})
+    cred = db.credentials.find_one({"user_id": "USR023"})
     assert cred["password_hash"].startswith("scrypt$") and ADMIN_PASSWORD not in cred["password_hash"]
     assert auth.verify_password(ADMIN_PASSWORD, cred["password_hash"])
     assert not auth.verify_password(STAFF_PASSWORD, cred["password_hash"])
@@ -206,11 +206,22 @@ def test_deactivation_ends_sessions(admin_client, app, db, head_admin):
     auth.update_staff(db, head_admin, "USR014", active=True)
 
 
+def test_only_the_project_team_are_head_admins(db, anon):
+    admins = {u["user_id"] for u in db.users.find({"role": "Admin", "active": True})}
+    assert admins == {"USR023", "USR024"}  # Nirupam Raut and Bhudev Singh
+    r = anon.post("/login", data={"identifier": "USR001", "password": ADMIN_PASSWORD})
+    assert "deactivated" in r.text  # the former admin's record is kept for the history only
+    sign_in(anon, "bhudev.singh@claimsure.example")
+    assert anon.get("/admin/staff").status_code == 200
+
+
 def test_last_head_admin_is_protected(db, head_admin):
-    with pytest.raises(auth.AuthError, match="at least one active Head Admin"):
-        auth.update_staff(db, head_admin, "USR001", role="Claims Manager")
     with pytest.raises(auth.AuthError, match="your own account"):
-        auth.update_staff(db, head_admin, "USR001", active=False)
+        auth.update_staff(db, head_admin, "USR023", active=False)
+    auth.update_staff(db, head_admin, "USR024", role="Claims Manager")  # allowed: USR023 remains
+    with pytest.raises(auth.AuthError, match="at least one active Head Admin"):
+        auth.update_staff(db, head_admin, "USR023", role="Claims Manager")
+    auth.update_staff(db, head_admin, "USR024", role="Admin")
 
 
 def test_password_policy(db):

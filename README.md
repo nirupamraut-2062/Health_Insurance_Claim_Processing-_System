@@ -23,7 +23,7 @@ The full design rationale is in **[docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN
 
 | Area | What is implemented |
 |---|---|
-| **Data volume** | 16,758 documents in **14 collections**: 5,288 members, 2,200 policies, 2,591 claims, 99 hospitals, 484 doctors, 2,039 payments, 3,631 audit entries; plus a 100,000-document benchmark collection |
+| **Data volume** | 16,760 documents in **14 collections**: 24 staff, 5,288 members, 2,200 policies, 2,591 claims, 99 hospitals, 484 doctors, 2,039 payments, 3,631 audit entries; plus a 100,000-document benchmark collection |
 | **Schema design** | Embedding, references, the extended-reference, subset and computed patterns, bounded arrays, and a sequence (counter) collection |
 | **Schema validation** | `$jsonSchema` validators on 14 collections (required fields, types, enums, regex patterns, min/max), defined once in `schema/validators.json` |
 | **Indexes** | 50 secondary indexes (65 with the default `_id` indexes): unique, compound (ESR rule), multikey, **text**, **partial**, **sparse**, **TTL** and **2dsphere** |
@@ -75,12 +75,12 @@ python main.py views        # create the read-only views
 python main.py backup       # logical backup to backups/<timestamp>/
 python main.py restore NAME # restore a backup
 python main.py users        # staff sign-in accounts, access levels, last sign-in
-python main.py reset-password USR001   # issue a temporary password (e.g. if the Head Admin is locked out)
+python main.py reset-password USR023   # issue a temporary password (e.g. if the Head Admin is locked out)
 ```
 
 ## Signing in and access levels
 
-Every page needs a sign-in with the work email or the staff ID (`USR001` ... `USR022`). The first time the app starts, it gives each staff member a password:
+Every page needs a sign-in with the work email or the staff ID (`USR002` ... `USR024`). The first time the app starts, it gives each staff member a password:
 - `CLAIMSURE_ADMIN_PASSWORD` from `.env` for the Head Admin
 - `CLAIMSURE_STAFF_PASSWORD` from `.env` for everyone else
 
@@ -88,7 +88,7 @@ If these are not set, it generates the passwords and prints them once. After tha
 
 | Level | Roles | Authority |
 |---|---|---|
-| **Head Admin** | Admin (Ananya Rao, `USR001`) | Everything, plus: reopen a closed case for re-verification, create and deactivate staff, change roles, reset passwords, reset or restore the database, run maintenance jobs and the benchmark |
+| **Head Admin** | Admin: Nirupam Raut (`USR023`) and Bhudev Singh (`USR024`) only. The former admin `USR001` is deactivated but kept, because the history refers to her | Everything, plus: reopen a closed case for re-verification, create and deactivate staff, change roles, reset passwords, reset or restore the database, run maintenance jobs and the benchmark |
 | **Supervisor** | Claims Manager | Approve up to ₹10 lakh, re-open a rejected claim after an appeal, conclude any re-verification, review fraud, read the audit log, run the labs |
 | **Staff** | Senior Claims Adjuster, Medical Officer, Claims Executive, Fraud Analyst | Work their queue within the role's approval limit (₹3 lakh, ₹2 lakh, ₹75,000, none). Anything above the limit is escalated automatically |
 

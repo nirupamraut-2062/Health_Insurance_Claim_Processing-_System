@@ -8,7 +8,7 @@ Before the review:
 - Run `python main.py test-live` the morning of the review: 32 passing tests show the server is reachable and everything works.
 - Open the public link (Render) once, about a minute early, so the free server wakes up. Or start the app locally with `python main.py web` (`http://127.0.0.1:8000`). The header must say **LIVE · MongoDB (Atlas)**.
 - Have three sign-ins ready (passwords are in `.env`):
-  - **Head Admin**: `USR001` (Ananya Rao)
+  - **Head Admin**: `USR023` (Nirupam Raut) or `USR024` (Bhudev Singh)
   - **Supervisor**: `USR003` (Lakshmi Iyer, Claims Manager)
   - **Staff**: `USR011` (Neha Kapoor, Claims Executive)
 - Use a private window for a second user so both stay signed in.
@@ -22,14 +22,14 @@ Before the review:
 ### 1. Problem and design (2 min)
 - Insurers process thousands of claims. Each claim is a *case file* with a variable bill, diagnoses, documents, queries and an audit history. This is a natural fit for a document database.
 - Open **DB Console → Data model** and walk through the embed/reference table and the six design patterns.
-- Mention the scale: 14 collections, 16,758 documents, 5,288 insured members, 2,591 claims, plus a 100,000-document benchmark collection, all on MongoDB Atlas.
+- Mention the scale: 14 collections, 16,760 documents, 5,288 insured members, 2,591 claims, plus a 100,000-document benchmark collection, all on MongoDB Atlas.
 
 ### 2. Sign-in and access levels (2 min)
 - Open the site: you are sent to the **sign-in page**. Sign in as `USR011` (Claims Executive, **Staff**).
 - The top bar shows the role and the access level.
 - **My Account** lists what this person may and may not do.
 - Open `/admin/staff`: **Access denied**. A Claims Executive cannot manage staff.
-- Sign out and sign in as `USR001` (**Head Admin**). **Staff & Access** now appears.
+- Sign out and sign in as `USR023` (**Head Admin**). **Staff & Access** now appears.
   - Show the permission matrix and the security events, including the sign-ins just made.
   - **Reset password** for a worker. A temporary password is shown once, and they must change it at their next sign-in.
 - Database point: passwords are scrypt hashes in a separate `credentials` collection, and sessions live in `sessions` with a **TTL index**. Show both in **DB Console → Query playground**: it refuses `$lookup` into `credentials`.
@@ -55,7 +55,7 @@ Before the review:
    - Click **Pay** again (or reload): settlement is refused, and the unique index blocks a second payment.
 8. **Reopen the dead case (Head Admin authority)**:
    - Still on the settled claim, show the Claims Executive first: "Only the Head Admin can reopen a closed case".
-   - As `USR001`, open **Reopen case for re-verification**, give a reason and assign it to the Fraud Analyst `USR021`. The claim moves to **Re-verification** and lands in her queue.
+   - As `USR023`, open **Reopen case for re-verification**, give a reason and assign it to the Fraud Analyst `USR021`. The claim moves to **Re-verification** and lands in her queue.
    - Sign in as `USR021` and choose **Settlement flagged for recovery**. The claim returns to Settled with a recovery flag, and the payment is not made a second time.
    - For a **Rejected** claim, the verifier can choose *re-adjudicate* instead: the old decision moves to `previous_adjudications`.
 

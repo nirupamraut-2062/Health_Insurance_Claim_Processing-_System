@@ -74,7 +74,7 @@ def test_change_event_description():
 def client(db):
     from web.app import app
     with TestClient(app) as c:
-        sign_in(c, "USR001")  # Head Admin: every page and action is allowed
+        sign_in(c, "USR023")  # Head Admin: every page and action is allowed
         yield c
 
 

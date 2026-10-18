@@ -1,5 +1,5 @@
 [
-{"user_id": "USR001", "name": "Ananya Rao", "email": "ananya.rao@claimsure.example", "role": "Admin", "department": "Operations", "region": "All India", "approval_limit": 10000000, "active": true, "joined_on": {"$date": "2022-03-14T00:00:00Z"}},
+{"user_id": "USR001", "name": "Ananya Rao", "email": "ananya.rao@claimsure.example", "role": "Admin", "department": "Operations", "region": "All India", "approval_limit": 10000000, "active": false, "joined_on": {"$date": "2022-03-14T00:00:00Z"}},
 {"user_id": "USR002", "name": "Vikram Malhotra", "email": "vikram.malhotra@claimsure.example", "role": "Claims Manager", "department": "Claims", "region": "North", "approval_limit": 1000000, "active": true, "joined_on": {"$date": "2012-05-25T00:00:00Z"}},
 {"user_id": "USR003", "name": "Lakshmi Iyer", "email": "lakshmi.iyer@claimsure.example", "role": "Claims Manager", "department": "Claims", "region": "South", "approval_limit": 1000000, "active": true, "joined_on": {"$date": "2012-12-26T00:00:00Z"}},
 {"user_id": "USR004", "name": "Sourav Banerjee", "email": "sourav.banerjee@claimsure.example", "role": "Claims Manager", "department": "Claims", "region": "East", "approval_limit": 1000000, "active": true, "joined_on": {"$date": "2021-09-06T00:00:00Z"}},
@@ -20,5 +20,7 @@
 {"user_id": "USR019", "name": "Dr. Gurpreet Gill", "email": "gurpreet.gill@claimsure.example", "role": "Medical Officer", "department": "Medical Review", "region": "North", "approval_limit": 200000, "active": true, "joined_on": {"$date": "2022-10-22T00:00:00Z"}},
 {"user_id": "USR020", "name": "Dr. Faisal Ansari", "email": "faisal.ansari@claimsure.example", "role": "Medical Officer", "department": "Medical Review", "region": "West", "approval_limit": 200000, "active": true, "joined_on": {"$date": "2017-12-27T00:00:00Z"}},
 {"user_id": "USR021", "name": "Ritu Saxena", "email": "ritu.saxena@claimsure.example", "role": "Fraud Analyst", "department": "Investigation Unit", "region": "All India", "approval_limit": 0, "active": true, "joined_on": {"$date": "2018-12-09T00:00:00Z"}},
-{"user_id": "USR022", "name": "Joseph Fernandes", "email": "joseph.fernandes@claimsure.example", "role": "Fraud Analyst", "department": "Investigation Unit", "region": "All India", "approval_limit": 0, "active": true, "joined_on": {"$date": "2017-12-03T00:00:00Z"}}
+{"user_id": "USR022", "name": "Joseph Fernandes", "email": "joseph.fernandes@claimsure.example", "role": "Fraud Analyst", "department": "Investigation Unit", "region": "All India", "approval_limit": 0, "active": true, "joined_on": {"$date": "2017-12-03T00:00:00Z"}},
+{"user_id": "USR023", "name": "Nirupam Raut", "email": "nirupam.raut@claimsure.example", "role": "Admin", "department": "Operations", "region": "All India", "approval_limit": 10000000, "active": true, "joined_on": {"$date": "2026-10-01T00:00:00Z"}},
+{"user_id": "USR024", "name": "Bhudev Singh", "email": "bhudev.singh@claimsure.example", "role": "Admin", "department": "Operations", "region": "All India", "approval_limit": 10000000, "active": true, "joined_on": {"$date": "2026-10-01T00:00:00Z"}}
 ]

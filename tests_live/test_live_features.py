@@ -110,13 +110,13 @@ def test_session_lookup_is_one_aggregation(db, client):
     from claimsure import auth
     token = client.cookies.get(auth.SESSION_COOKIE)
     user = auth.session_user(db, token)
-    assert user["user_id"] == "USR001" and user["must_change_password"] is False
+    assert user["user_id"] == "USR023" and user["must_change_password"] is False
 
 
 def test_server_validator_accepts_reverification(db):
     from claimsure import services
     from claimsure.constants import REVERIFICATION
-    admin = services.get_user(db, "USR001")
+    admin = services.get_user(db, "USR023")
     claim = db.claims.find_one({"status": "Withdrawn"})
     services.reopen_claim(db, claim["claim_number"], admin, "Live test: reopen a withdrawn claim", "USR003")
     assert db.claims.find_one({"claim_number": claim["claim_number"]})["status"] == REVERIFICATION

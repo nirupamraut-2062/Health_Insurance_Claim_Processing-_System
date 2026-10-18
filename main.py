@@ -445,7 +445,7 @@ def staff_command(db, args):
         return
     user = auth.find_user(db, args.name)
     if not user:
-        sys.exit(f"{R}Usage: python main.py reset-password USR001 (staff ID or email)")
+        sys.exit(f"{R}Usage: python main.py reset-password USR023 (staff ID or email)")
     head = db.users.find_one({"role": "Admin", "active": True}, {"_id": 0}) or user
     target, password = auth.reset_password(db, {**head, "role": "Admin"}, user["user_id"])
     print(f"{G}Temporary password for {target['name']} ({target['user_id']}): {password}")

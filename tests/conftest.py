@@ -9,11 +9,13 @@ os.environ["CLAIMSURE_MODE"] = "mock"  # tests always run on mongomock, even wit
 # Known initial passwords for the test run (they override any values in .env)
 ADMIN_PASSWORD = os.environ["CLAIMSURE_ADMIN_PASSWORD"] = "Admin-test-2026"
 STAFF_PASSWORD = os.environ["CLAIMSURE_STAFF_PASSWORD"] = "Staff-test-2026"
+HEAD_ADMINS = ("USR023", "USR024")  # Nirupam Raut, Bhudev Singh (USR001 is deactivated)
 
 
 def sign_in(client, user_id, password=None):
     """Sign a TestClient in; the session cookie stays on the client."""
-    password = password or (ADMIN_PASSWORD if user_id == "USR001" else STAFF_PASSWORD)
+    admin = user_id in HEAD_ADMINS or user_id.split("@")[0] in ("nirupam.raut", "bhudev.singh")
+    password = password or (ADMIN_PASSWORD if admin else STAFF_PASSWORD)
     r = client.post("/login", data={"identifier": user_id, "password": password}, follow_redirects=False)
     assert r.status_code == 303, r.text[:300]
     return r
@@ -45,4 +47,4 @@ def executive(db):
 @pytest.fixture(scope="session")
 def head_admin(db):
     from claimsure.services import get_user
-    return get_user(db, "USR001")  # Ananya Rao, Head Admin
+    return get_user(db, "USR023")  # Nirupam Raut, Head Admin

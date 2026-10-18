@@ -46,6 +46,6 @@ def client(db):
     from fastapi.testclient import TestClient
     from web.app import app
     with TestClient(app) as c:
-        r = c.post("/login", data={"identifier": "USR001", "password": ADMIN_PASSWORD}, follow_redirects=False)
+        r = c.post("/login", data={"identifier": "USR023", "password": ADMIN_PASSWORD}, follow_redirects=False)
         assert r.status_code == 303, r.text[:300]
         yield c

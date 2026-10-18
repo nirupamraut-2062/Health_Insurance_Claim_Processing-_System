@@ -320,6 +320,13 @@ STAFF = [
     ("USR022", "Joseph Fernandes", "Fraud Analyst", "Investigation Unit", "All India"),
 ]
 
+# The project team are the only active Head Admins. USR001 stays in the data (the
+# history refers to her) but her account is deactivated.
+PROJECT_ADMINS = [
+    ("USR023", "Nirupam Raut", datetime(2026, 10, 1)),
+    ("USR024", "Bhudev Singh", datetime(2026, 10, 1)),
+]
+
 QUERY_QUESTIONS = [
     "Please submit indoor case papers for the entire stay.",
     "Provide the first consultation prescription for this ailment.",
@@ -566,6 +573,16 @@ def build_users():
             "joined_on": datetime(rng.randint(2012, 2023), rng.randint(1, 12), rng.randint(1, 28)),
         })
     return docs
+
+
+def finalize_users(users):
+    """Hand Head Admin authority to the project team (after the history is generated)."""
+    users = [dict(u, active=False) if u["role"] == "Admin" else u for u in users]
+    for uid, name, joined in PROJECT_ADMINS:
+        users.append({"user_id": uid, "name": name, "email": name.lower().replace(" ", ".") + "@claimsure.example",
+                      "role": "Admin", "department": "Operations", "region": "All India",
+                      "approval_limit": ROLES["Admin"]["approval_limit"], "active": True, "joined_on": joined})
+    return users
 
 
 def build_agents():
@@ -1487,6 +1504,7 @@ if __name__ == "__main__":
     CLAIMS, PAYMENTS = build_claims(MEMBERS, POLICIES)
     GRIEVANCES = build_grievances(CLAIMS)
     AUDIT = build_audit_logs(CLAIMS, POLICIES, USERS)
+    USERS = finalize_users(USERS)
 
     datasets = {
         "insurers": INSURER_DOCS, "tpas": TPA_DOCS, "plans": PLANS, "icd_codes": ICD_CODES,

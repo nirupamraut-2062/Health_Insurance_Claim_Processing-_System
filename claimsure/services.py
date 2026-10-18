@@ -185,7 +185,7 @@ def _approver_for(db, amount, region):
             local = [u for u in users if u["region"] == region]
             if local or users:
                 return (local or users)[0]
-    return db.users.find_one({"role": "Admin"}, {"_id": 0})
+    return db.users.find_one({"role": "Admin", "active": True}, {"_id": 0})
 
 
 def adjudicate_claim(db, claim_number, user, manual_rejection=None, remarks="", expected_version=None):
